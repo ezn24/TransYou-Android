@@ -6,6 +6,9 @@
     <string name="title_settings">App Settings</string>
     <string name="input_file">Input file</string>
     <string name="output_file">Output file</string>
+    <string name="output_folder">Output folder</string>
+    <string name="pick_output_folder">Choose folder</string>
+    <string name="output_name">Output file name</string>
     <string name="video_codec">Video codec</string>
     <string name="audio_codec">Audio codec</string>
     <string name="output_format">Output format</string>
@@ -13,9 +16,12 @@
     <string name="bitrate">Bitrate (kbps)</string>
     <string name="preset">Preset</string>
     <string name="extra_options">Extra options</string>
+    <string name="pick_from_gallery">Pick from gallery</string>
+    <string name="pick_from_files">Pick from files</string>
     <string name="command_preview">FFmpeg command</string>
     <string name="copy_command">Copy</string>
     <string name="reset_command">Reset to generated</string>
+    <string name="view_logs">View logs</string>
     <string name="language">Language</string>
     <string name="theme">Theme</string>
     <string name="theme_system">Follow system</string>
@@ -30,7 +36,13 @@
     <string name="section_video">Video</string>
     <string name="section_audio">Audio</string>
     <string name="section_output">Output</string>
+    <string name="section_format">Format</string>
     <string name="section_command">Command</string>
     <string name="snackbar_copied">Command copied</string>
     <string name="snackbar_reset">Command reset</string>
+    <string name="transcoding_progress">Transcoding progress</string>
+    <string name="transcoding_running">Transcoding in progress…</string>
+    <string name="log_title">FFmpeg logs</string>
+    <string name="log_empty">No logs yet.</string>
+    <string name="close">Close</string>
 </resources>

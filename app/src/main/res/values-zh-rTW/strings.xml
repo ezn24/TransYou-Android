@@ -6,6 +6,9 @@
     <string name="title_settings">應用設定</string>
     <string name="input_file">輸入檔案</string>
     <string name="output_file">輸出檔案</string>
+    <string name="output_folder">輸出資料夾</string>
+    <string name="pick_output_folder">選擇資料夾</string>
+    <string name="output_name">輸出檔名</string>
     <string name="video_codec">影片編碼器</string>
     <string name="audio_codec">音訊編碼器</string>
     <string name="output_format">輸出格式</string>
@@ -13,9 +16,12 @@
     <string name="bitrate">位元率 (kbps)</string>
     <string name="preset">預設</string>
     <string name="extra_options">額外參數</string>
+    <string name="pick_from_gallery">從相簿選擇</string>
+    <string name="pick_from_files">從檔案管理器選擇</string>
     <string name="command_preview">FFmpeg 指令</string>
     <string name="copy_command">複製</string>
     <string name="reset_command">重設為自動產生</string>
+    <string name="view_logs">查看日誌</string>
     <string name="language">語言</string>
     <string name="theme">主題</string>
     <string name="theme_system">跟隨系統</string>
@@ -30,7 +36,13 @@
     <string name="section_video">影片</string>
     <string name="section_audio">音訊</string>
     <string name="section_output">輸出</string>
+    <string name="section_format">格式</string>
     <string name="section_command">指令</string>
     <string name="snackbar_copied">已複製指令</string>
     <string name="snackbar_reset">已重設指令</string>
+    <string name="transcoding_progress">轉碼進度</string>
+    <string name="transcoding_running">正在轉碼…</string>
+    <string name="log_title">FFmpeg 日誌</string>
+    <string name="log_empty">暫無日誌</string>
+    <string name="close">關閉</string>
 </resources>
