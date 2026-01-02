@@ -1,4 +1,4 @@
-package com.example.ffd.ui.theme
+package com.github.ezn24.FFD.ui.theme
 
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme

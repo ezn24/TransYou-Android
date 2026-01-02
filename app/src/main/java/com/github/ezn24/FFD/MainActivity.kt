@@ -1,4 +1,4 @@
-package com.example.ffd
+package com.github.ezn24.FFD
 
 import android.content.Context
 import android.os.Bundle
@@ -66,7 +66,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.example.ffd.ui.theme.FFDTheme
+import com.github.ezn24.FFD.ui.theme.FFDTheme
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map

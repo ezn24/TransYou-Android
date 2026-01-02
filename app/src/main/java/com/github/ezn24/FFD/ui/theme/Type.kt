@@ -1,4 +1,4 @@
-package com.example.ffd.ui.theme
+package com.github.ezn24.FFD.ui.theme
 
 import androidx.compose.material3.Typography
 

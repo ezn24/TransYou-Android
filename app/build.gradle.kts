@@ -4,11 +4,11 @@ plugins {
 }
 
 android {
-    namespace = "com.example.ffd"
+    namespace = "com.github.ezn24.FFD"
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.example.ffd"
+        applicationId = "com.github.ezn24.FFD"
         minSdk = 26
         targetSdk = 34
         versionCode = 1
