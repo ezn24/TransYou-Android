@@ -1,0 +1,36 @@
+<resources>
+    <string name="app_name">FFD 轉碼器</string>
+    <string name="nav_transcode">轉碼</string>
+    <string name="nav_settings">設定</string>
+    <string name="title_transcode">FFmpeg 轉碼</string>
+    <string name="title_settings">應用設定</string>
+    <string name="input_file">輸入檔案</string>
+    <string name="output_file">輸出檔案</string>
+    <string name="video_codec">影片編碼器</string>
+    <string name="audio_codec">音訊編碼器</string>
+    <string name="output_format">輸出格式</string>
+    <string name="resolution">解析度</string>
+    <string name="bitrate">位元率 (kbps)</string>
+    <string name="preset">預設</string>
+    <string name="extra_options">額外參數</string>
+    <string name="command_preview">FFmpeg 指令</string>
+    <string name="copy_command">複製</string>
+    <string name="reset_command">重設為自動產生</string>
+    <string name="language">語言</string>
+    <string name="theme">主題</string>
+    <string name="theme_system">跟隨系統</string>
+    <string name="theme_light">淺色</string>
+    <string name="theme_dark">深色</string>
+    <string name="pure_black">深色模式使用純黑背景</string>
+    <string name="language_system">跟隨系統</string>
+    <string name="language_en">English</string>
+    <string name="language_zh_cn">简体中文</string>
+    <string name="language_zh_tw">繁體中文</string>
+    <string name="section_inputs">輸入</string>
+    <string name="section_video">影片</string>
+    <string name="section_audio">音訊</string>
+    <string name="section_output">輸出</string>
+    <string name="section_command">指令</string>
+    <string name="snackbar_copied">已複製指令</string>
+    <string name="snackbar_reset">已重設指令</string>
+</resources>
