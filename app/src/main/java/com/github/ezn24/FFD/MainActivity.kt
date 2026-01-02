@@ -1,6 +1,7 @@
 package com.github.ezn24.FFD
 
 import android.content.Context
+import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -8,12 +9,14 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
@@ -47,6 +50,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -73,10 +77,14 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.arthenica.ffmpegkit.FFmpegKit
+import com.arthenica.ffmpegkit.ReturnCode
 import com.github.ezn24.FFD.ui.theme.FFDTheme
+import androidx.documentfile.provider.DocumentFile
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import java.io.File
 
 private val Context.dataStore by preferencesDataStore(name = "settings")
 
@@ -113,10 +121,6 @@ class MainActivity : ComponentActivity() {
 private fun AppScaffold(settingsRepository: SettingsRepository) {
     val navController = rememberNavController()
     val snackbarHostState = remember { SnackbarHostState() }
-    var isTranscoding by rememberSaveable { mutableStateOf(false) }
-    var progress by rememberSaveable { mutableStateOf(0f) }
-    val logEntries = remember { mutableStateOf(listOf<String>()) }
-    val coroutineScope = rememberCoroutineScope()
 
     Scaffold(
         topBar = {
@@ -148,31 +152,6 @@ private fun AppScaffold(settingsRepository: SettingsRepository) {
                 )
             }
         },
-        floatingActionButton = {
-            if (navController.currentDestinationRoute() == Routes.Transcode.route) {
-                FloatingActionButton(
-                    onClick = {
-                        if (!isTranscoding) {
-                            isTranscoding = true
-                            progress = 0f
-                            logEntries.value = listOf("[init] Preparing ffmpeg session")
-                            coroutineScope.launch {
-                                repeat(10) { step ->
-                                    progress = (step + 1) / 10f
-                                    logEntries.value = logEntries.value +
-                                        "[progress] ${((step + 1) * 10)}%"
-                                    kotlinx.coroutines.delay(350)
-                                }
-                                logEntries.value = logEntries.value + "[done] Transcode finished"
-                                isTranscoding = false
-                            }
-                        }
-                    },
-                ) {
-                    Icon(Icons.Default.PlayArrow, contentDescription = null)
-                }
-            }
-        },
         snackbarHost = { SnackbarHost(snackbarHostState) },
     ) { padding ->
         NavHost(
@@ -183,12 +162,7 @@ private fun AppScaffold(settingsRepository: SettingsRepository) {
                 .padding(padding),
         ) {
             composable(Routes.Transcode.route) {
-                TranscodeScreen(
-                    snackbarHostState = snackbarHostState,
-                    isTranscoding = isTranscoding,
-                    progress = progress,
-                    logEntries = logEntries.value,
-                )
+                TranscodeScreen(snackbarHostState = snackbarHostState)
             }
             composable(Routes.Settings.route) {
                 SettingsScreen(settingsRepository = settingsRepository)
@@ -208,14 +182,14 @@ private fun NavHostController.currentDestinationRoute(): String? =
 @Composable
 private fun TranscodeScreen(
     snackbarHostState: SnackbarHostState,
-    isTranscoding: Boolean,
-    progress: Float,
-    logEntries: List<String>,
 ) {
     val clipboardManager = LocalClipboardManager.current
     val keyboardController = LocalSoftwareKeyboardController.current
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
+    val logEntries = remember { mutableStateListOf<String>() }
+    var isTranscoding by rememberSaveable { mutableStateOf(false) }
+    var showLogs by rememberSaveable { mutableStateOf(false) }
 
     var inputFile by rememberSaveable { mutableStateOf("/storage/emulated/0/Movies/input.mov") }
     var outputFolder by rememberSaveable { mutableStateOf("/storage/emulated/0/Movies") }
@@ -226,8 +200,6 @@ private fun TranscodeScreen(
     var resolution by rememberSaveable { mutableStateOf("1920x1080") }
     var bitrate by rememberSaveable { mutableStateOf("4000") }
     var preset by rememberSaveable { mutableStateOf("medium") }
-    var showLogs by rememberSaveable { mutableStateOf(false) }
-
     val inputFilePicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument(),
         onResult = { uri ->
@@ -288,47 +260,50 @@ private fun TranscodeScreen(
 
     val scrollState = rememberScrollState()
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(scrollState)
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
+    Box(
+        modifier = Modifier.fillMaxSize(),
     ) {
-        SectionCard(title = stringResource(id = R.string.section_inputs)) {
-            OutlinedTextField(
-                value = inputFile,
-                onValueChange = { inputFile = it },
-                label = { Text(stringResource(id = R.string.input_file)) },
-                modifier = Modifier.fillMaxWidth(),
-            )
-            Spacer(modifier = Modifier.height(12.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                FilledTonalButton(
-                    onClick = {
-                        mediaPicker.launch(
-                            androidx.activity.result.PickVisualMediaRequest(
-                                ActivityResultContracts.PickVisualMedia.ImageAndVideo,
-                            ),
-                        )
-                    },
-                    modifier = Modifier.weight(1f),
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(scrollState)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            SectionCard(title = stringResource(id = R.string.section_inputs)) {
+                OutlinedTextField(
+                    value = inputFile,
+                    onValueChange = { inputFile = it },
+                    label = { Text(stringResource(id = R.string.input_file)) },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    Text(text = stringResource(id = R.string.pick_from_gallery))
-                }
-                FilledTonalButton(
-                    onClick = {
-                        inputFilePicker.launch(arrayOf("video/*", "audio/*"))
-                    },
-                    modifier = Modifier.weight(1f),
-                ) {
-                    Text(text = stringResource(id = R.string.pick_from_files))
+                    FilledTonalButton(
+                        onClick = {
+                            mediaPicker.launch(
+                                androidx.activity.result.PickVisualMediaRequest(
+                                    ActivityResultContracts.PickVisualMedia.ImageAndVideo,
+                                ),
+                            )
+                        },
+                        modifier = Modifier.weight(1f),
+                    ) {
+                        Text(text = stringResource(id = R.string.pick_from_gallery))
+                    }
+                    FilledTonalButton(
+                        onClick = {
+                            inputFilePicker.launch(arrayOf("video/*", "audio/*"))
+                        },
+                        modifier = Modifier.weight(1f),
+                    ) {
+                        Text(text = stringResource(id = R.string.pick_from_files))
+                    }
                 }
             }
-        }
 
         SectionCard(title = stringResource(id = R.string.section_output)) {
             OutlinedTextField(
@@ -481,15 +456,75 @@ private fun TranscodeScreen(
             }
         }
 
-        if (isTranscoding) {
-            SectionCard(title = stringResource(id = R.string.transcoding_progress)) {
-                LinearProgressIndicator(
-                    progress = { progress },
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(text = stringResource(id = R.string.transcoding_running))
+            if (isTranscoding) {
+                SectionCard(title = stringResource(id = R.string.transcoding_progress)) {
+                    LinearProgressIndicator(
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(text = stringResource(id = R.string.transcoding_running))
+                }
             }
+        }
+
+        FloatingActionButton(
+            onClick = {
+                if (isTranscoding) return@FloatingActionButton
+                val message = context.getString(R.string.transcoding_running)
+                val inputPath = resolveInputForFFmpeg(context, inputFile)
+                val outputPath = resolveOutputForFFmpeg(context, outputFolder, outputName, outputFormat)
+                isTranscoding = true
+                logEntries.clear()
+                logEntries.add("[init] ${context.getString(R.string.transcoding_progress)}")
+                FFmpegKit.executeAsync(
+                    buildFfmpegCommand(
+                        inputFile = inputPath.absolutePath,
+                        outputFolder = outputPath.parent,
+                        outputName = outputPath.nameWithoutExtension,
+                        outputFormat = outputPath.extension,
+                        videoCodec = videoCodec,
+                        audioCodec = audioCodec,
+                        resolution = resolution,
+                        bitrate = bitrate,
+                        preset = preset,
+                    ),
+                    { session ->
+                        val returnCode = session.returnCode
+                        coroutineScope.launch {
+                            if (ReturnCode.isSuccess(returnCode)) {
+                                logEntries.add("[done] Transcode finished")
+                                if (outputFolder.startsWith("content://")) {
+                                    copyToOutputFolder(
+                                        context,
+                                        outputFolder,
+                                        outputPath,
+                                    )
+                                }
+                            } else {
+                                logEntries.add("[error] ${returnCode?.toString() ?: "Unknown"}")
+                            }
+                            isTranscoding = false
+                        }
+                    },
+                    { log ->
+                        if (log != null) {
+                            coroutineScope.launch {
+                                logEntries.add(log.message)
+                            }
+                        }
+                    },
+                    null,
+                )
+                coroutineScope.launch {
+                    snackbarHostState.showSnackbar(message)
+                }
+            },
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(16.dp)
+                .navigationBarsPadding(),
+        ) {
+            Icon(Icons.Default.PlayArrow, contentDescription = null)
         }
     }
 
@@ -711,5 +746,69 @@ private class SettingsRepository(private val context: Context) {
         context.dataStore.edit { prefs ->
             prefs[key] = value
         }
+    }
+}
+
+private fun resolveInputForFFmpeg(context: Context, input: String): File {
+    if (!input.startsWith("content://")) {
+        return File(input)
+    }
+    val uri = Uri.parse(input)
+    val name = queryDisplayName(context, uri) ?: "input"
+    val tempFile = File(context.cacheDir, name)
+    context.contentResolver.openInputStream(uri)?.use { inputStream ->
+        tempFile.outputStream().use { outputStream ->
+            inputStream.copyTo(outputStream)
+        }
+    }
+    return tempFile
+}
+
+private fun resolveOutputForFFmpeg(
+    context: Context,
+    outputFolder: String,
+    outputName: String,
+    outputFormat: String,
+): File {
+    val safeName = outputName.ifBlank { "output" }
+    return if (outputFolder.startsWith("content://")) {
+        File(context.cacheDir, "$safeName.$outputFormat")
+    } else {
+        File(outputFolder.trimEnd('/'), "$safeName.$outputFormat")
+    }
+}
+
+private fun copyToOutputFolder(context: Context, folderUri: String, source: File) {
+    val treeUri = Uri.parse(folderUri)
+    val documentFile = DocumentFile.fromTreeUri(context, treeUri) ?: return
+    val mimeType = mimeTypeForExtension(source.extension)
+    val target = documentFile.createFile(mimeType, source.nameWithoutExtension) ?: return
+    context.contentResolver.openOutputStream(target.uri)?.use { outputStream ->
+        source.inputStream().use { inputStream ->
+            inputStream.copyTo(outputStream)
+        }
+    }
+}
+
+private fun queryDisplayName(context: Context, uri: Uri): String? {
+    val projection = arrayOf(android.provider.OpenableColumns.DISPLAY_NAME)
+    context.contentResolver.query(uri, projection, null, null, null)?.use { cursor ->
+        val nameIndex = cursor.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
+        if (cursor.moveToFirst() && nameIndex != -1) {
+            return cursor.getString(nameIndex)
+        }
+    }
+    return null
+}
+
+private fun mimeTypeForExtension(extension: String): String {
+    return when (extension.lowercase()) {
+        "mp4" -> "video/mp4"
+        "mkv" -> "video/x-matroska"
+        "webm" -> "video/webm"
+        "mov" -> "video/quicktime"
+        "mp3" -> "audio/mpeg"
+        "wav" -> "audio/wav"
+        else -> "application/octet-stream"
     }
 }
