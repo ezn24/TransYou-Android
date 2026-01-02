@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -102,6 +103,7 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
+@OptIn(ExperimentalMaterial3Api::class)
 private fun AppScaffold(settingsRepository: SettingsRepository) {
     val navController = rememberNavController()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -167,6 +169,7 @@ private fun NavHostController.currentDestinationRoute(): String? =
 private fun TranscodeScreen(snackbarHostState: SnackbarHostState) {
     val clipboardManager = LocalClipboardManager.current
     val keyboardController = LocalSoftwareKeyboardController.current
+    val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
 
     var inputFile by rememberSaveable { mutableStateOf("/storage/emulated/0/Movies/input.mov") }
@@ -313,9 +316,10 @@ private fun TranscodeScreen(snackbarHostState: SnackbarHostState) {
                 FilledTonalButton(onClick = {
                     clipboardManager.setText(AnnotatedString(commandText))
                     keyboardController?.hide()
+                    val message = context.getString(R.string.snackbar_copied)
                     coroutineScope.launch {
                         snackbarHostState.showSnackbar(
-                            message = LocalContext.current.getString(R.string.snackbar_copied),
+                            message = message,
                         )
                     }
                 }) {
@@ -325,9 +329,10 @@ private fun TranscodeScreen(snackbarHostState: SnackbarHostState) {
                     isManualEdit = false
                     commandText = generatedCommand
                     keyboardController?.hide()
+                    val message = context.getString(R.string.snackbar_reset)
                     coroutineScope.launch {
                         snackbarHostState.showSnackbar(
-                            message = LocalContext.current.getString(R.string.snackbar_reset),
+                            message = message,
                         )
                     }
                 }) {
@@ -484,7 +489,7 @@ private enum class AppLanguage(val labelRes: Int, val localeTag: String?) {
     SYSTEM(R.string.language_system, null),
     EN(R.string.language_en, "en"),
     ZH_CN(R.string.language_zh_cn, "zh-CN"),
-    ZH_TW(R.string.language_zh_tw, "zh-TW"),
+    ZH_TW(R.string.language_zh_tw, "zh-TW");
 
     fun toLocaleList(): LocaleListCompat = if (localeTag == null) {
         LocaleListCompat.getEmptyLocaleList()
