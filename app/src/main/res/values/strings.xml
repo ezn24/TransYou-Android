@@ -17,9 +17,6 @@
     <string name="preset">Preset</string>
     <string name="pick_from_gallery">Pick from gallery</string>
     <string name="pick_from_files">Pick from files</string>
-    <string name="command_preview">FFmpeg command</string>
-    <string name="copy_command">Copy</string>
-    <string name="reset_command">Reset to generated</string>
     <string name="view_logs">View logs</string>
     <string name="language">Language</string>
     <string name="theme">Theme</string>

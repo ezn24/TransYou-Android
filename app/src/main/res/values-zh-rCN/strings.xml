@@ -17,9 +17,6 @@
     <string name="preset">预设</string>
     <string name="pick_from_gallery">从相册选择</string>
     <string name="pick_from_files">从文件管理器选择</string>
-    <string name="command_preview">FFmpeg 命令</string>
-    <string name="copy_command">复制</string>
-    <string name="reset_command">重置为自动生成</string>
     <string name="view_logs">查看日志</string>
     <string name="language">语言</string>
     <string name="theme">主题</string>

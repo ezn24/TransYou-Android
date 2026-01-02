@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -58,11 +57,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
@@ -183,8 +179,6 @@ private fun NavHostController.currentDestinationRoute(): String? =
 private fun TranscodeScreen(
     snackbarHostState: SnackbarHostState,
 ) {
-    val clipboardManager = LocalClipboardManager.current
-    val keyboardController = LocalSoftwareKeyboardController.current
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     val logEntries = remember { mutableStateListOf<String>() }
@@ -247,15 +241,6 @@ private fun TranscodeScreen(
             bitrate = bitrate,
             preset = preset,
         )
-    }
-
-    var commandText by rememberSaveable { mutableStateOf(generatedCommand) }
-    var isManualEdit by rememberSaveable { mutableStateOf(false) }
-
-    LaunchedEffect(generatedCommand, isManualEdit) {
-        if (!isManualEdit) {
-            commandText = generatedCommand
-        }
     }
 
     val scrollState = rememberScrollState()
@@ -408,49 +393,6 @@ private fun TranscodeScreen(
         }
 
         SectionCard(title = stringResource(id = R.string.section_command)) {
-            OutlinedTextField(
-                value = commandText,
-                onValueChange = {
-                    commandText = it
-                    isManualEdit = true
-                },
-                label = { Text(stringResource(id = R.string.command_preview)) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .fillMaxHeight(0.35f),
-            )
-            Spacer(modifier = Modifier.height(12.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
-                FilledTonalButton(onClick = {
-                    clipboardManager.setText(AnnotatedString(commandText))
-                    keyboardController?.hide()
-                    val message = context.getString(R.string.snackbar_copied)
-                    coroutineScope.launch {
-                        snackbarHostState.showSnackbar(
-                            message = message,
-                        )
-                    }
-                }) {
-                    Text(text = stringResource(id = R.string.copy_command))
-                }
-                TextButton(onClick = {
-                    isManualEdit = false
-                    commandText = generatedCommand
-                    keyboardController?.hide()
-                    val message = context.getString(R.string.snackbar_reset)
-                    coroutineScope.launch {
-                        snackbarHostState.showSnackbar(
-                            message = message,
-                        )
-                    }
-                }) {
-                    Text(text = stringResource(id = R.string.reset_command))
-                }
-            }
-            Spacer(modifier = Modifier.height(12.dp))
             TextButton(onClick = { showLogs = true }) {
                 Text(text = stringResource(id = R.string.view_logs))
             }

@@ -17,9 +17,6 @@
     <string name="preset">預設</string>
     <string name="pick_from_gallery">從相簿選擇</string>
     <string name="pick_from_files">從檔案管理器選擇</string>
-    <string name="command_preview">FFmpeg 指令</string>
-    <string name="copy_command">複製</string>
-    <string name="reset_command">重設為自動產生</string>
     <string name="view_logs">查看日誌</string>
     <string name="language">語言</string>
     <string name="theme">主題</string>
