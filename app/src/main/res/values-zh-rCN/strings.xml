@@ -15,7 +15,6 @@
     <string name="resolution">分辨率</string>
     <string name="bitrate">码率 (kbps)</string>
     <string name="preset">预设</string>
-    <string name="extra_options">额外参数</string>
     <string name="pick_from_gallery">从相册选择</string>
     <string name="pick_from_files">从文件管理器选择</string>
     <string name="command_preview">FFmpeg 命令</string>

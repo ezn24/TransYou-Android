@@ -15,7 +15,6 @@
     <string name="resolution">Resolution</string>
     <string name="bitrate">Bitrate (kbps)</string>
     <string name="preset">Preset</string>
-    <string name="extra_options">Extra options</string>
     <string name="pick_from_gallery">Pick from gallery</string>
     <string name="pick_from_files">Pick from files</string>
     <string name="command_preview">FFmpeg command</string>

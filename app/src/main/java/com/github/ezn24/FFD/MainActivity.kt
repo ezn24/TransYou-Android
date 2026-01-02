@@ -226,7 +226,6 @@ private fun TranscodeScreen(
     var resolution by rememberSaveable { mutableStateOf("1920x1080") }
     var bitrate by rememberSaveable { mutableStateOf("4000") }
     var preset by rememberSaveable { mutableStateOf("medium") }
-    var extraOptions by rememberSaveable { mutableStateOf("-movflags +faststart") }
     var showLogs by rememberSaveable { mutableStateOf(false) }
 
     val inputFilePicker = rememberLauncherForActivityResult(
@@ -264,7 +263,6 @@ private fun TranscodeScreen(
         resolution,
         bitrate,
         preset,
-        extraOptions,
     ) {
         buildFfmpegCommand(
             inputFile = inputFile,
@@ -276,7 +274,6 @@ private fun TranscodeScreen(
             resolution = resolution,
             bitrate = bitrate,
             preset = preset,
-            extraOptions = extraOptions,
         )
     }
 
@@ -387,6 +384,7 @@ private fun TranscodeScreen(
                 ),
                 selected = resolution,
                 onSelected = { resolution = it },
+                enabled = videoCodec != "copy",
             )
             Spacer(modifier = Modifier.height(12.dp))
             OutlinedTextField(
@@ -395,6 +393,7 @@ private fun TranscodeScreen(
                 label = { Text(stringResource(id = R.string.bitrate)) },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 modifier = Modifier.fillMaxWidth(),
+                enabled = videoCodec != "copy",
             )
             Spacer(modifier = Modifier.height(12.dp))
             DropdownField(
@@ -402,6 +401,7 @@ private fun TranscodeScreen(
                 options = listOf("ultrafast", "fast", "medium", "slow", "veryslow"),
                 selected = preset,
                 onSelected = { preset = it },
+                enabled = videoCodec != "copy",
             )
         }
 
@@ -429,13 +429,6 @@ private fun TranscodeScreen(
                 options = listOf("mp4", "mkv", "webm", "mov", "mp3", "wav"),
                 selected = outputFormat,
                 onSelected = { outputFormat = it },
-            )
-            Spacer(modifier = Modifier.height(12.dp))
-            OutlinedTextField(
-                value = extraOptions,
-                onValueChange = { extraOptions = it },
-                label = { Text(stringResource(id = R.string.extra_options)) },
-                modifier = Modifier.fillMaxWidth(),
             )
         }
 
@@ -600,12 +593,13 @@ private fun <T> DropdownField(
     options: List<T>,
     selected: T,
     onSelected: (T) -> Unit,
+    enabled: Boolean = true,
     optionLabel: @Composable (T) -> String = { it.toString() },
 ) {
     var expanded by remember { mutableStateOf(false) }
     ExposedDropdownMenuBox(
         expanded = expanded,
-        onExpandedChange = { expanded = !expanded },
+        onExpandedChange = { if (enabled) expanded = !expanded },
     ) {
         OutlinedTextField(
             value = optionLabel(selected),
@@ -616,12 +610,13 @@ private fun <T> DropdownField(
             modifier = Modifier
                 .menuAnchor()
                 .fillMaxWidth(),
+            enabled = enabled,
         )
         ExposedDropdownMenu(
             expanded = expanded,
             onDismissRequest = { expanded = false },
         ) {
-            options.forEach { option ->
+            if (enabled) options.forEach { option ->
                 DropdownMenuItem(
                     text = { Text(optionLabel(option)) },
                     onClick = {
@@ -644,7 +639,6 @@ private fun buildFfmpegCommand(
     resolution: String,
     bitrate: String,
     preset: String,
-    extraOptions: String,
 ): String {
     val sanitizedInput = inputFile.ifBlank { "input" }
     val safeName = outputName.ifBlank { "output" }
@@ -656,7 +650,6 @@ private fun buildFfmpegCommand(
         if (bitrate.isNotBlank() && videoCodec != "copy") "-b:v ${bitrate}k" else null,
         if (preset.isNotBlank() && videoCodec != "copy") "-preset $preset" else null,
         if (audioCodec == "copy") "-c:a copy" else if (audioCodec.isNotBlank()) "-c:a $audioCodec" else null,
-        if (extraOptions.isNotBlank()) extraOptions else null,
         "-f $outputFormat",
         "\"$sanitizedOutput\"",
     )
