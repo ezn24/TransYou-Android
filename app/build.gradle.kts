@@ -55,6 +55,7 @@ android {
 
 dependencies {
     val composeBom = platform("androidx.compose:compose-bom:2024.08.00")
+    val nextlibVersion = "latest.release"
     implementation(composeBom)
     androidTestImplementation(composeBom)
 
@@ -71,7 +72,9 @@ dependencies {
     implementation("androidx.appcompat:appcompat:1.7.0")
     implementation("androidx.core:core-splashscreen:1.0.1")
     implementation("com.google.android.material:material:1.12.0")
-    implementation("io.github.anilbeesetti.nextlib:ffmpeg-kit-full:6.0-2")
+    implementation("io.github.anilbeesetti:ffmpeg-kit-full:6.0-2")
+    implementation("io.github.anilbeesetti:nextlib-media3ext:$nextlibVersion")
+    implementation("io.github.anilbeesetti:nextlib-mediainfo:$nextlibVersion")
 
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
