@@ -36,6 +36,10 @@ jobs:
       - name: Build release APK
         run: gradle :app:assembleRelease
 
+      - name: Install Android build-tools 29.0.3
+        run: |
+          yes | "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" --install "build-tools;29.0.3"
+
       - name: Sign APK
         id: sign_apk
         uses: r0adkll/sign-android-release@v1
