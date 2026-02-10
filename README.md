@@ -1,11 +1,13 @@
 # TransYou
+**简体中文: [README.zh-CN.md](README.zh-CN.md)**
+**繁體中文: [README.zh-TW.md](README.zh-TW.md)**
 
-TransYou is an Android media transcoder app built with Kotlin + Jetpack Compose + Media3 Transformer.
+<br>
 
-## Languages
-- English (this file)
-- 简体中文: [README.zh-CN.md](README.zh-CN.md)
-- 繁體中文: [README.zh-TW.md](README.zh-TW.md)
+**TransYou** is an Android media transcoder app built with Kotlin + Jetpack Compose + Media3 Transformer.
+
+## Warning
+All code in this repository is written by Codex. So know your own risk!
 
 ## Features
 - Video / audio transcoding UI with format and codec options.
@@ -50,5 +52,4 @@ If your environment cannot resolve AGP artifacts, make sure your Gradle reposito
 ## License
 This project is licensed under the GNU General Public License v3.0 (GPL-3.0). See [LICENSE](LICENSE).
 
-## Code authorship note
-All code in this repository is written by Codex.
+
