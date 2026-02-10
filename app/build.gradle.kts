@@ -72,7 +72,8 @@ dependencies {
     implementation("androidx.appcompat:appcompat:1.7.0")
     implementation("androidx.core:core-splashscreen:1.0.1")
     implementation("com.google.android.material:material:1.12.0")
-    implementation("com.arthenica:mobile-ffmpeg-full:4.4.LTS")
+    implementation("androidx.media3:media3-common:1.4.1")
+    implementation("androidx.media3:media3-transformer:1.4.1")
     implementation("io.github.anilbeesetti:nextlib-media3ext:$nextlibVersion")
     implementation("io.github.anilbeesetti:nextlib-mediainfo:$nextlibVersion")
 

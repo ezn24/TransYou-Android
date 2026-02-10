@@ -74,9 +74,12 @@ import androidx.documentfile.provider.DocumentFile
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.arthenica.mobileffmpeg.Config
-import com.arthenica.mobileffmpeg.FFmpeg
-import com.arthenica.mobileffmpeg.ReturnCode
+import androidx.media3.common.MediaItem
+import androidx.media3.common.MimeTypes
+import androidx.media3.transformer.ExportException
+import androidx.media3.transformer.ExportResult
+import androidx.media3.transformer.TransformationRequest
+import androidx.media3.transformer.Transformer
 import com.github.ezn24.FFD.ui.theme.FFDTheme
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.Flow
@@ -220,29 +223,6 @@ private fun TranscodeScreen(
         },
     )
 
-    val generatedCommand = remember(
-        inputFile,
-        outputFolder,
-        outputName,
-        videoCodec,
-        audioCodec,
-        outputFormat,
-        resolution,
-        bitrate,
-        preset,
-    ) {
-        buildFfmpegCommand(
-            inputFile = inputFile,
-            outputFolder = outputFolder,
-            outputName = outputName,
-            videoCodec = videoCodec,
-            audioCodec = audioCodec,
-            outputFormat = outputFormat,
-            resolution = resolution,
-            bitrate = bitrate,
-            preset = preset,
-        )
-    }
 
     val scrollState = rememberScrollState()
 
@@ -414,45 +394,49 @@ private fun TranscodeScreen(
             onClick = {
                 if (isTranscoding) return@FloatingActionButton
                 val message = context.getString(R.string.transcoding_running)
-                val inputPath = resolveInputForFFmpeg(context, inputFile)
+                val inputUri = resolveInputUri(inputFile)
                 val outputPath = resolveOutputForFFmpeg(context, outputFolder, outputName, outputFormat)
                 isTranscoding = true
                 logEntries.clear()
                 logEntries.add("[init] ${context.getString(R.string.transcoding_progress)}")
-                Config.enableLogCallback { logMessage ->
-                    coroutineScope.launch {
-                        logEntries.add(logMessage.text)
-                    }
-                }
-                FFmpeg.executeAsync(
-                    buildFfmpegCommand(
-                        inputFile = inputPath.absolutePath,
-                        outputFolder = outputPath.parent,
-                        outputName = outputPath.nameWithoutExtension,
-                        outputFormat = outputPath.extension,
-                        videoCodec = videoCodec,
-                        audioCodec = audioCodec,
-                        resolution = resolution,
-                        bitrate = bitrate,
-                        preset = preset,
-                    ),
-                ) { _, returnCode ->
-                    coroutineScope.launch {
-                        if (ReturnCode.isSuccess(returnCode)) {
-                            logEntries.add("[done] Transcode finished")
-                            if (outputFolder.startsWith("content://")) {
-                                copyToOutputFolder(
-                                    context,
-                                    outputFolder,
-                                    outputPath,
-                                )
+
+                val transformer = Transformer.Builder(context)
+                    .setTransformationRequest(
+                        TransformationRequest.Builder()
+                            .setVideoMimeType(videoMimeTypeFor(videoCodec, outputFormat))
+                            .setAudioMimeType(audioMimeTypeFor(audioCodec, outputFormat))
+                            .build(),
+                    )
+                    .addListener(
+                        object : Transformer.Listener {
+                            override fun onCompleted(
+                                composition: androidx.media3.transformer.Composition,
+                                exportResult: ExportResult,
+                            ) {
+                                coroutineScope.launch {
+                                    logEntries.add("[done] Transcode finished")
+                                    if (outputFolder.startsWith("content://")) {
+                                        copyToOutputFolder(context, outputFolder, outputPath)
+                                    }
+                                    isTranscoding = false
+                                }
                             }
-                        } else {
-                            logEntries.add("[error] ${returnCode ?: "Unknown"}")
-                        }
-                        isTranscoding = false
-                    }
-                }
+
+                            override fun onError(
+                                composition: androidx.media3.transformer.Composition,
+                                exportResult: ExportResult,
+                                exportException: ExportException,
+                            ) {
+                                coroutineScope.launch {
+                                    logEntries.add("[error] ${exportException.message ?: "Unknown"}")
+                                    isTranscoding = false
+                                }
+                            }
+                        },
+                    )
+                    .build()
+
+                transformer.start(MediaItem.fromUri(inputUri), outputPath.absolutePath)
                 coroutineScope.launch {
                     snackbarHostState.showSnackbar(message)
                 }
@@ -602,33 +586,6 @@ private fun <T> DropdownField(
     }
 }
 
-private fun buildFfmpegCommand(
-    inputFile: String,
-    outputFolder: String,
-    outputName: String,
-    videoCodec: String,
-    audioCodec: String,
-    outputFormat: String,
-    resolution: String,
-    bitrate: String,
-    preset: String,
-): String {
-    val sanitizedInput = inputFile.ifBlank { "input" }
-    val safeName = outputName.ifBlank { "output" }
-    val sanitizedOutput = "${outputFolder.trimEnd('/')}/$safeName.$outputFormat"
-    val options = listOfNotNull(
-        "-i \"$sanitizedInput\"",
-        if (videoCodec == "copy") "-c:v copy" else if (videoCodec.isNotBlank()) "-c:v $videoCodec" else null,
-        if (resolution.isNotBlank() && resolution != "copy") "-s $resolution" else null,
-        if (bitrate.isNotBlank() && videoCodec != "copy") "-b:v ${bitrate}k" else null,
-        if (preset.isNotBlank() && videoCodec != "copy") "-preset $preset" else null,
-        if (audioCodec == "copy") "-c:a copy" else if (audioCodec.isNotBlank()) "-c:a $audioCodec" else null,
-        "-f $outputFormat",
-        "\"$sanitizedOutput\"",
-    )
-
-    return options.joinToString(" ").trim()
-}
 
 private enum class ThemeMode(val labelRes: Int) {
     SYSTEM(R.string.theme_system),
@@ -687,19 +644,8 @@ private class SettingsRepository(private val context: Context) {
     }
 }
 
-private fun resolveInputForFFmpeg(context: Context, input: String): File {
-    if (!input.startsWith("content://")) {
-        return File(input)
-    }
-    val uri = Uri.parse(input)
-    val name = queryDisplayName(context, uri) ?: "input"
-    val tempFile = File(context.cacheDir, name)
-    context.contentResolver.openInputStream(uri)?.use { inputStream ->
-        tempFile.outputStream().use { outputStream ->
-            inputStream.copyTo(outputStream)
-        }
-    }
-    return tempFile
+private fun resolveInputUri(input: String): Uri {
+    return if (input.startsWith("content://")) Uri.parse(input) else Uri.fromFile(File(input))
 }
 
 private fun resolveOutputForFFmpeg(
@@ -728,16 +674,27 @@ private fun copyToOutputFolder(context: Context, folderUri: String, source: File
     }
 }
 
-private fun queryDisplayName(context: Context, uri: Uri): String? {
-    val projection = arrayOf(android.provider.OpenableColumns.DISPLAY_NAME)
-    context.contentResolver.query(uri, projection, null, null, null)?.use { cursor ->
-        val nameIndex = cursor.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
-        if (cursor.moveToFirst() && nameIndex != -1) {
-            return cursor.getString(nameIndex)
-        }
+private fun videoMimeTypeFor(videoCodec: String, outputFormat: String): String? {
+    return when {
+        videoCodec == "copy" -> null
+        outputFormat == "mp4" || outputFormat == "mov" -> MimeTypes.VIDEO_H264
+        outputFormat == "webm" -> MimeTypes.VIDEO_VP9
+        else -> null
     }
-    return null
 }
+
+private fun audioMimeTypeFor(audioCodec: String, outputFormat: String): String? {
+    return when {
+        audioCodec == "copy" -> null
+        outputFormat == "mp4" || outputFormat == "mov" || outputFormat == "mkv" -> MimeTypes.AUDIO_AAC
+        outputFormat == "webm" -> MimeTypes.AUDIO_OPUS
+        outputFormat == "mp3" -> MimeTypes.AUDIO_MPEG
+        outputFormat == "wav" -> MimeTypes.AUDIO_RAW
+        else -> null
+    }
+}
+
+
 
 private fun mimeTypeForExtension(extension: String): String {
     return when (extension.lowercase()) {
