@@ -859,8 +859,8 @@ private fun resolveOutputFile(
 private fun copyToOutputFolder(context: Context, folderUri: String, source: File) {
     val treeUri = Uri.parse(folderUri)
     val documentFile = DocumentFile.fromTreeUri(context, treeUri) ?: return
-    val mimeType = mimeTypeForExtension(source.extension)
-    val target = documentFile.createFile(mimeType, source.nameWithoutExtension) ?: return
+    // Keep original filename/extension as-is (e.g., .ogg) instead of provider-normalized variants (e.g., .oga).
+    val target = documentFile.createFile("application/octet-stream", source.name) ?: return
     context.contentResolver.openOutputStream(target.uri)?.use { outputStream ->
         source.inputStream().use { inputStream ->
             inputStream.copyTo(outputStream)
@@ -891,20 +891,3 @@ private fun audioMimeTypeFor(audioCodec: String, outputFormat: String, removeAud
     }
 }
 
-private fun mimeTypeForExtension(extension: String): String {
-    return when (extension.lowercase()) {
-        "mp4", "m4v" -> "video/mp4"
-        "mkv" -> "video/x-matroska"
-        "webm" -> "video/webm"
-        "mov" -> "video/quicktime"
-        "3gp" -> "video/3gpp"
-        "avi" -> "video/x-msvideo"
-        "ts" -> "video/mp2t"
-        "mp3" -> "audio/mpeg"
-        "wav" -> "audio/wav"
-        "m4a", "aac" -> "audio/mp4"
-        "flac" -> "audio/flac"
-        "ogg", "opus" -> "audio/ogg"
-        else -> "application/octet-stream"
-    }
-}
