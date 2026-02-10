@@ -4,18 +4,15 @@
     android:viewportWidth="108"
     android:viewportHeight="108">
 
-    <!-- 正方形背景 -->
     <path
-        android:fillColor="#FFFFFF"
+        android:fillColor="?android:attr/colorBackground"
         android:pathData="M0,0h108v108h-108z" />
 
-    <!-- 等號（圓角） -->
     <path
-        android:fillColor="#1B1B1B"
+        android:fillColor="?android:attr/colorControlNormal"
         android:pathData="M37,44h34a3,3 0 0 1 3,3v0a3,3 0 0 1 -3,3h-34a3,3 0 0 1 -3,-3v0a3,3 0 0 1 3,-3z" />
 
     <path
-        android:fillColor="#1B1B1B"
+        android:fillColor="?android:attr/colorControlNormal"
         android:pathData="M37,58h34a3,3 0 0 1 3,3v0a3,3 0 0 1 -3,3h-34a3,3 0 0 1 -3,-3v0a3,3 0 0 1 3,-3z" />
-
 </vector>
