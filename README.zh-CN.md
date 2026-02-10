@@ -16,6 +16,23 @@ TransYou 是一款 Android 媒体转码应用，基于 Kotlin + Jetpack Compose 
 - 应用内可查看运行日志预览与完整日志弹窗。
 - 支持浅色 / 深色 / 纯黑主题与语言切换。
 
+## 自定义输出文件名使用说明
+1. 先选择输入文件，并设置目标输出格式。
+2. 在 **输出命名方式** 中选择 **自定义模板**。
+3. 在 **自定义命名模板** 中输入占位符模板。
+4. （可选）在 **自定义日期格式** 中设置 `{custom_date}`（例如：`yyyyMMdd_HHmmss`）。
+5. 确认 **输出文件名预览** 无误后开始转码。
+
+常用占位符：
+- `{input_file_name}`
+- `{output_format}` / `{input_format}`
+- `{input_encode}` / `{output_encode}`
+- `{audio_encode}` / `{video_encode}`
+- `{date}` / `{time}` / `{date_time}` / `{custom_date}`
+
+示例模板：
+- `{input_file_name}_{output_encode}_{date_time}`
+
 ## 本地构建
 > 当前仓库使用 Android Gradle Plugin `8.6.1` 与 Kotlin Android plugin `1.9.24`。
 
@@ -31,4 +48,7 @@ gradle :app:assembleDebug
 - `app/build.gradle.kts`：Android 模块构建配置。
 
 ## 许可证
-当前仓库尚未提供 License 文件。
+本项目采用 GNU General Public License v3.0（GPL-3.0）协议，详见 [LICENSE](LICENSE)。
+
+## 代码来源说明
+本仓库中的所有代码均由 Codex 编写。
