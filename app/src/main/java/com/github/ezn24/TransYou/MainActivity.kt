@@ -3,10 +3,10 @@ package com.github.ezn24.TransYou
 import android.content.Context
 import android.net.Uri
 import android.os.Bundle
-import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -47,7 +47,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -68,11 +67,14 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.navigation.NavHostController
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.documentfile.provider.DocumentFile
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MimeTypes
@@ -84,6 +86,7 @@ import androidx.media3.transformer.Transformer
 import com.github.ezn24.TransYou.ui.theme.TransYouTheme
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import java.io.File
 import java.text.SimpleDateFormat
@@ -92,23 +95,32 @@ import java.util.Locale
 
 private val Context.dataStore by preferencesDataStore(name = "settings")
 
-class MainActivity : ComponentActivity() {
+class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        val settingsRepository = SettingsRepository(this)
+
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                settingsRepository.languageFlow
+                    .distinctUntilChanged()
+                    .collect { language ->
+                        val targetLocales = language.toLocaleList()
+                        if (AppCompatDelegate.getApplicationLocales() != targetLocales) {
+                            AppCompatDelegate.setApplicationLocales(targetLocales)
+                        }
+                    }
+            }
+        }
+
         setContent {
-            val settingsRepository = remember { SettingsRepository(this) }
             val themeMode by settingsRepository.themeModeFlow.collectAsStateWithLifecycle(ThemeMode.SYSTEM)
             val pureBlack by settingsRepository.pureBlackFlow.collectAsStateWithLifecycle(false)
-            val language by settingsRepository.languageFlow.collectAsStateWithLifecycle(AppLanguage.SYSTEM)
 
             val darkTheme = when (themeMode) {
                 ThemeMode.SYSTEM -> androidx.compose.foundation.isSystemInDarkTheme()
                 ThemeMode.LIGHT -> false
                 ThemeMode.DARK -> true
-            }
-
-            LaunchedEffect(language) {
-                AppCompatDelegate.setApplicationLocales(language.toLocaleList())
             }
 
             TransYouTheme(darkTheme = darkTheme, pureBlack = pureBlack) {
@@ -124,6 +136,8 @@ class MainActivity : ComponentActivity() {
 @OptIn(ExperimentalMaterial3Api::class)
 private fun AppScaffold(settingsRepository: SettingsRepository) {
     val navController = rememberNavController()
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = navBackStackEntry?.destination?.route
     val snackbarHostState = remember { SnackbarHostState() }
 
     Scaffold(
@@ -131,7 +145,7 @@ private fun AppScaffold(settingsRepository: SettingsRepository) {
             TopAppBar(
                 title = {
                     Text(
-                        text = if (navController.currentDestinationRoute() == Routes.Settings.route) {
+                        text = if (currentRoute == Routes.Settings.route) {
                             stringResource(id = R.string.title_settings)
                         } else {
                             stringResource(id = R.string.title_transcode)
@@ -143,13 +157,13 @@ private fun AppScaffold(settingsRepository: SettingsRepository) {
         bottomBar = {
             NavigationBar {
                 NavigationBarItem(
-                    selected = navController.currentDestinationRoute() == Routes.Transcode.route,
+                    selected = currentRoute == Routes.Transcode.route,
                     onClick = { navController.navigate(Routes.Transcode.route) },
                     icon = { Icon(Icons.Default.SwapHoriz, contentDescription = null) },
                     label = { Text(stringResource(id = R.string.nav_transcode)) },
                 )
                 NavigationBarItem(
-                    selected = navController.currentDestinationRoute() == Routes.Settings.route,
+                    selected = currentRoute == Routes.Settings.route,
                     onClick = { navController.navigate(Routes.Settings.route) },
                     icon = { Icon(Icons.Default.Settings, contentDescription = null) },
                     label = { Text(stringResource(id = R.string.nav_settings)) },
@@ -179,9 +193,6 @@ private enum class Routes(val route: String) {
     Transcode("transcode"),
     Settings("settings"),
 }
-
-private fun NavHostController.currentDestinationRoute(): String? =
-    currentBackStackEntry?.destination?.route
 
 @Composable
 private fun TranscodeScreen(
@@ -890,4 +901,3 @@ private fun audioMimeTypeFor(audioCodec: String, outputFormat: String, removeAud
         else -> null
     }
 }
-
