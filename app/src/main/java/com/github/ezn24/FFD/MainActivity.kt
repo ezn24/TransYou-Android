@@ -77,7 +77,6 @@ import androidx.navigation.compose.rememberNavController
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MimeTypes
 import androidx.media3.transformer.ExportException
-import androidx.media3.transformer.Composition
 import androidx.media3.transformer.EditedMediaItem
 import androidx.media3.transformer.ExportResult
 import androidx.media3.transformer.TransformationRequest
@@ -459,7 +458,6 @@ private fun TranscodeScreen(
                     .setRemoveAudio(shouldRemoveAudio)
                     .build()
 
-                val composition = Composition.Builder(editedMediaItem).build()
 
                 val transformer = Transformer.Builder(context)
                     .setTransformationRequest(transformationRequest)
@@ -493,7 +491,7 @@ private fun TranscodeScreen(
                     )
                     .build()
 
-                transformer.start(composition, outputPath.absolutePath)
+                transformer.start(editedMediaItem, outputPath.absolutePath)
                 logEntries.add("[run] ${outputPath.absolutePath}")
                 coroutineScope.launch {
                     snackbarHostState.showSnackbar(message)
