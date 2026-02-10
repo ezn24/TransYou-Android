@@ -1,11 +1,14 @@
 # TransYou
 
-TransYou 是一款 Android 媒體轉碼應用，基於 Kotlin + Jetpack Compose + Media3 Transformer 建置。
+**English**: [README.md](README.md)
+**简体中文**: [README.zh-CN.md](README.zh-CN.md)
 
-## 語言
-- English: [README.md](README.md)
-- 简体中文: [README.zh-CN.md](README.zh-CN.md)
-- 繁體中文（目前）
+<br>
+
+**TransYou** 是一款 Android 離綫媒體轉碼應用，基於 Kotlin + Jetpack Compose + Media3 Transformer 建置。
+
+## 注意！！！
+本倉庫中的所有程式碼皆由 Codex 編寫。請知曉此風險。
 
 ## 功能
 - 提供影片 / 音訊轉碼介面，支援多種格式與編碼設定。
@@ -49,6 +52,3 @@ gradle :app:assembleDebug
 
 ## 授權
 本專案採用 GNU General Public License v3.0（GPL-3.0）授權，詳見 [LICENSE](LICENSE)。
-
-## 程式碼來源說明
-本倉庫中的所有程式碼皆由 Codex 編寫。
