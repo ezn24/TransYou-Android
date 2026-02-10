@@ -70,13 +70,14 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
+import androidx.documentfile.provider.DocumentFile
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.arthenica.ffmpegkit.FFmpegKit
-import com.arthenica.ffmpegkit.ReturnCode
+import com.arthenica.mobileffmpeg.Config
+import com.arthenica.mobileffmpeg.FFmpeg
+import com.arthenica.mobileffmpeg.ReturnCode
 import com.github.ezn24.FFD.ui.theme.FFDTheme
-import androidx.documentfile.provider.DocumentFile
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -418,7 +419,12 @@ private fun TranscodeScreen(
                 isTranscoding = true
                 logEntries.clear()
                 logEntries.add("[init] ${context.getString(R.string.transcoding_progress)}")
-                FFmpegKit.executeAsync(
+                Config.enableLogCallback { logMessage ->
+                    coroutineScope.launch {
+                        logEntries.add(logMessage.text)
+                    }
+                }
+                FFmpeg.executeAsync(
                     buildFfmpegCommand(
                         inputFile = inputPath.absolutePath,
                         outputFolder = outputPath.parent,
@@ -430,33 +436,23 @@ private fun TranscodeScreen(
                         bitrate = bitrate,
                         preset = preset,
                     ),
-                    { session ->
-                        val returnCode = session.returnCode
-                        coroutineScope.launch {
-                            if (ReturnCode.isSuccess(returnCode)) {
-                                logEntries.add("[done] Transcode finished")
-                                if (outputFolder.startsWith("content://")) {
-                                    copyToOutputFolder(
-                                        context,
-                                        outputFolder,
-                                        outputPath,
-                                    )
-                                }
-                            } else {
-                                logEntries.add("[error] ${returnCode?.toString() ?: "Unknown"}")
+                ) { _, returnCode ->
+                    coroutineScope.launch {
+                        if (ReturnCode.isSuccess(returnCode)) {
+                            logEntries.add("[done] Transcode finished")
+                            if (outputFolder.startsWith("content://")) {
+                                copyToOutputFolder(
+                                    context,
+                                    outputFolder,
+                                    outputPath,
+                                )
                             }
-                            isTranscoding = false
+                        } else {
+                            logEntries.add("[error] ${returnCode ?: "Unknown"}")
                         }
-                    },
-                    { log ->
-                        if (log != null) {
-                            coroutineScope.launch {
-                                logEntries.add(log.message)
-                            }
-                        }
-                    },
-                    null,
-                )
+                        isTranscoding = false
+                    }
+                }
                 coroutineScope.launch {
                     snackbarHostState.showSnackbar(message)
                 }
