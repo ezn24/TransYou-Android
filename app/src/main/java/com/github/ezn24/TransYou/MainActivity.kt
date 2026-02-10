@@ -1,4 +1,4 @@
-package com.github.ezn24.FFD
+package com.github.ezn24.TransYou
 
 import android.content.Context
 import android.net.Uri
@@ -77,14 +77,18 @@ import androidx.navigation.compose.rememberNavController
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MimeTypes
 import androidx.media3.transformer.ExportException
+import androidx.media3.transformer.EditedMediaItem
 import androidx.media3.transformer.ExportResult
 import androidx.media3.transformer.TransformationRequest
 import androidx.media3.transformer.Transformer
-import com.github.ezn24.FFD.ui.theme.FFDTheme
+import com.github.ezn24.TransYou.ui.theme.TransYouTheme
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import java.io.File
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 private val Context.dataStore by preferencesDataStore(name = "settings")
 
@@ -107,7 +111,7 @@ class MainActivity : ComponentActivity() {
                 AppCompatDelegate.setApplicationLocales(language.toLocaleList())
             }
 
-            FFDTheme(darkTheme = darkTheme, pureBlack = pureBlack) {
+            TransYouTheme(darkTheme = darkTheme, pureBlack = pureBlack) {
                 Surface(modifier = Modifier.fillMaxSize()) {
                     AppScaffold(settingsRepository = settingsRepository)
                 }
@@ -191,13 +195,17 @@ private fun TranscodeScreen(
 
     var inputFile by rememberSaveable { mutableStateOf("/storage/emulated/0/Movies/input.mov") }
     var outputFolder by rememberSaveable { mutableStateOf("/storage/emulated/0/Movies") }
-    var outputName by rememberSaveable { mutableStateOf("output") }
+    var outputNamePattern by rememberSaveable { mutableStateOf(OutputNamePattern.DATE_ONLY) }
+    var customNameTemplate by rememberSaveable { mutableStateOf("{input_file_name}.convert.{input_format}.to.{output_format}") }
+    var customDateFormat by rememberSaveable { mutableStateOf("yyyyMMdd") }
     var videoCodec by rememberSaveable { mutableStateOf("libx264") }
     var audioCodec by rememberSaveable { mutableStateOf("aac") }
     var outputFormat by rememberSaveable { mutableStateOf("mp4") }
     var resolution by rememberSaveable { mutableStateOf("1920x1080") }
     var bitrate by rememberSaveable { mutableStateOf("4000") }
     var preset by rememberSaveable { mutableStateOf("medium") }
+    var audioOnly by rememberSaveable { mutableStateOf(false) }
+    var muteVideo by rememberSaveable { mutableStateOf(false) }
     val inputFilePicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument(),
         onResult = { uri ->
@@ -223,6 +231,39 @@ private fun TranscodeScreen(
         },
     )
 
+    val inputFileName = remember(inputFile) { extractInputFileName(inputFile) }
+    val inputFormat = remember(inputFile) { extractInputFormat(inputFile) }
+    val outputEncode = remember(videoCodec, audioCodec, audioOnly, muteVideo) {
+        when {
+            audioOnly -> audioCodec
+            muteVideo -> videoCodec
+            else -> "${videoCodec}_${audioCodec}"
+        }
+    }
+    val generatedOutputName = remember(
+        outputNamePattern,
+        customNameTemplate,
+        customDateFormat,
+        inputFileName,
+        inputFormat,
+        outputFormat,
+        audioCodec,
+        videoCodec,
+        outputEncode,
+    ) {
+        generateOutputName(
+            pattern = outputNamePattern,
+            customTemplate = customNameTemplate,
+            datePattern = customDateFormat,
+            inputFileName = inputFileName,
+            inputFormat = inputFormat,
+            inputEncode = "unknown",
+            outputFormat = outputFormat,
+            outputEncode = outputEncode,
+            audioEncode = audioCodec,
+            videoEncode = videoCodec,
+        )
+    }
 
     val scrollState = rememberScrollState()
 
@@ -283,11 +324,41 @@ private fun TranscodeScreen(
                 Text(text = stringResource(id = R.string.pick_output_folder))
             }
             Spacer(modifier = Modifier.height(12.dp))
+            DropdownField(
+                label = stringResource(id = R.string.output_name_pattern),
+                options = OutputNamePattern.entries,
+                selected = outputNamePattern,
+                onSelected = { outputNamePattern = it },
+                optionLabel = { mode -> stringResource(id = mode.labelRes) },
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+            if (outputNamePattern == OutputNamePattern.CUSTOM_TEMPLATE) {
+                OutlinedTextField(
+                    value = customNameTemplate,
+                    onValueChange = { customNameTemplate = it },
+                    label = { Text(stringResource(id = R.string.custom_name_template)) },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+                OutlinedTextField(
+                    value = customDateFormat,
+                    onValueChange = { customDateFormat = it },
+                    label = { Text(stringResource(id = R.string.custom_date_format)) },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = stringResource(id = R.string.custom_name_help),
+                    style = MaterialTheme.typography.bodySmall,
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+            }
             OutlinedTextField(
-                value = outputName,
-                onValueChange = { outputName = it },
-                label = { Text(stringResource(id = R.string.output_name)) },
+                value = "$generatedOutputName.$outputFormat",
+                onValueChange = {},
+                label = { Text(stringResource(id = R.string.output_name_preview)) },
                 modifier = Modifier.fillMaxWidth(),
+                readOnly = true,
             )
         }
 
@@ -307,6 +378,7 @@ private fun TranscodeScreen(
                 ),
                 selected = videoCodec,
                 onSelected = { videoCodec = it },
+                enabled = !audioOnly,
             )
             Spacer(modifier = Modifier.height(12.dp))
             DropdownField(
@@ -325,7 +397,7 @@ private fun TranscodeScreen(
                 ),
                 selected = resolution,
                 onSelected = { resolution = it },
-                enabled = videoCodec != "copy",
+                enabled = !audioOnly && videoCodec != "copy",
             )
             Spacer(modifier = Modifier.height(12.dp))
             OutlinedTextField(
@@ -334,7 +406,7 @@ private fun TranscodeScreen(
                 label = { Text(stringResource(id = R.string.bitrate)) },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 modifier = Modifier.fillMaxWidth(),
-                enabled = videoCodec != "copy",
+                enabled = !audioOnly && videoCodec != "copy",
             )
             Spacer(modifier = Modifier.height(12.dp))
             DropdownField(
@@ -342,7 +414,7 @@ private fun TranscodeScreen(
                 options = listOf("ultrafast", "fast", "medium", "slow", "veryslow"),
                 selected = preset,
                 onSelected = { preset = it },
-                enabled = videoCodec != "copy",
+                enabled = !audioOnly && videoCodec != "copy",
             )
         }
 
@@ -361,21 +433,63 @@ private fun TranscodeScreen(
                 ),
                 selected = audioCodec,
                 onSelected = { audioCodec = it },
+                enabled = !muteVideo,
             )
         }
 
         SectionCard(title = stringResource(id = R.string.section_format)) {
             DropdownField(
                 label = stringResource(id = R.string.output_format),
-                options = listOf("mp4", "mkv", "webm", "mov", "mp3", "wav"),
+                options = listOf(
+                    "mp4", "mkv", "webm", "mov", "m4v", "3gp", "avi", "ts",
+                    "mp3", "wav", "m4a", "aac", "flac", "ogg", "opus",
+                ),
                 selected = outputFormat,
                 onSelected = { outputFormat = it },
             )
+            Spacer(modifier = Modifier.height(12.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(text = stringResource(id = R.string.audio_only_output))
+                Switch(
+                    checked = audioOnly,
+                    onCheckedChange = { enabled ->
+                        audioOnly = enabled
+                        if (enabled) muteVideo = false
+                    },
+                )
+            }
+            Spacer(modifier = Modifier.height(12.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(text = stringResource(id = R.string.mute_video_output))
+                Switch(
+                    checked = muteVideo,
+                    onCheckedChange = { enabled ->
+                        muteVideo = enabled
+                        if (enabled) audioOnly = false
+                    },
+                )
+            }
         }
 
         SectionCard(title = stringResource(id = R.string.section_command)) {
             TextButton(onClick = { showLogs = true }) {
                 Text(text = stringResource(id = R.string.view_logs))
+            }
+            Spacer(modifier = Modifier.height(12.dp))
+            if (logEntries.isEmpty()) {
+                Text(text = stringResource(id = R.string.log_empty))
+            } else {
+                logEntries.takeLast(8).forEach { entry ->
+                    Text(text = entry)
+                }
             }
         }
 
@@ -395,18 +509,27 @@ private fun TranscodeScreen(
                 if (isTranscoding) return@FloatingActionButton
                 val message = context.getString(R.string.transcoding_running)
                 val inputUri = resolveInputUri(inputFile)
-                val outputPath = resolveOutputForFFmpeg(context, outputFolder, outputName, outputFormat)
+                val outputPath = resolveOutputFile(context, outputFolder, generatedOutputName, outputFormat)
+                val shouldRemoveVideo = audioOnly
+                val shouldRemoveAudio = muteVideo
                 isTranscoding = true
                 logEntries.clear()
                 logEntries.add("[init] ${context.getString(R.string.transcoding_progress)}")
+                logEntries.add("[mode] audioOnly=$audioOnly, muteVideo=$muteVideo, format=$outputFormat")
+
+                val transformationRequest = TransformationRequest.Builder()
+                    .setVideoMimeType(videoMimeTypeFor(videoCodec, outputFormat, shouldRemoveVideo))
+                    .setAudioMimeType(audioMimeTypeFor(audioCodec, outputFormat, shouldRemoveAudio))
+                    .build()
+
+                val editedMediaItem = EditedMediaItem.Builder(MediaItem.fromUri(inputUri))
+                    .setRemoveVideo(shouldRemoveVideo)
+                    .setRemoveAudio(shouldRemoveAudio)
+                    .build()
+
 
                 val transformer = Transformer.Builder(context)
-                    .setTransformationRequest(
-                        TransformationRequest.Builder()
-                            .setVideoMimeType(videoMimeTypeFor(videoCodec, outputFormat))
-                            .setAudioMimeType(audioMimeTypeFor(audioCodec, outputFormat))
-                            .build(),
-                    )
+                    .setTransformationRequest(transformationRequest)
                     .addListener(
                         object : Transformer.Listener {
                             override fun onCompleted(
@@ -415,6 +538,7 @@ private fun TranscodeScreen(
                             ) {
                                 coroutineScope.launch {
                                     logEntries.add("[done] Transcode finished")
+                                    logEntries.add("[file] ${outputPath.absolutePath}")
                                     if (outputFolder.startsWith("content://")) {
                                         copyToOutputFolder(context, outputFolder, outputPath)
                                     }
@@ -436,7 +560,8 @@ private fun TranscodeScreen(
                     )
                     .build()
 
-                transformer.start(MediaItem.fromUri(inputUri), outputPath.absolutePath)
+                transformer.start(editedMediaItem, outputPath.absolutePath)
+                logEntries.add("[run] ${outputPath.absolutePath}")
                 coroutineScope.launch {
                     snackbarHostState.showSnackbar(message)
                 }
@@ -587,6 +712,16 @@ private fun <T> DropdownField(
 }
 
 
+private enum class OutputNamePattern(val labelRes: Int, val template: String) {
+    DATE_ONLY(R.string.output_name_date_only, "{date}"),
+    CONVERT_DETAIL(R.string.output_name_convert_detail, "{input_file_name}.convert.{input_format}.to.{output_format}"),
+    ORIGINAL_NAME(R.string.output_name_original, "{input_file_name}"),
+    NAME_WITH_DATE_TIME(R.string.output_name_with_datetime, "{input_file_name}_{date_time}"),
+    NAME_WITH_OUTPUT_ENCODE(R.string.output_name_with_encode, "{input_file_name}_{output_encode}"),
+    DATE_TIME_ONLY(R.string.output_name_datetime_only, "{date_time}"),
+    CUSTOM_TEMPLATE(R.string.output_name_custom, "{input_file_name}"),
+}
+
 private enum class ThemeMode(val labelRes: Int) {
     SYSTEM(R.string.theme_system),
     LIGHT(R.string.theme_light),
@@ -644,11 +779,70 @@ private class SettingsRepository(private val context: Context) {
     }
 }
 
+private fun extractInputFileName(input: String): String {
+    val candidate = if (input.startsWith("content://")) {
+        Uri.parse(input).lastPathSegment ?: "input"
+    } else {
+        File(input).name
+    }
+    return candidate.substringBeforeLast('.', candidate).ifBlank { "input" }
+}
+
+private fun extractInputFormat(input: String): String {
+    val candidate = if (input.startsWith("content://")) {
+        Uri.parse(input).lastPathSegment ?: ""
+    } else {
+        File(input).name
+    }
+    return candidate.substringAfterLast('.', "unknown").ifBlank { "unknown" }
+}
+
+private fun generateOutputName(
+    pattern: OutputNamePattern,
+    customTemplate: String,
+    datePattern: String,
+    inputFileName: String,
+    inputFormat: String,
+    inputEncode: String,
+    outputFormat: String,
+    outputEncode: String,
+    audioEncode: String,
+    videoEncode: String,
+): String {
+    val safeDatePattern = datePattern.ifBlank { "yyyyMMdd" }
+    val dateFormatter = runCatching { SimpleDateFormat(safeDatePattern, Locale.getDefault()) }
+        .getOrElse { SimpleDateFormat("yyyyMMdd", Locale.getDefault()) }
+    val date = SimpleDateFormat("yyyyMMdd", Locale.getDefault()).format(Date())
+    val dateTime = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
+    val customDate = dateFormatter.format(Date())
+
+    val template = if (pattern == OutputNamePattern.CUSTOM_TEMPLATE) customTemplate else pattern.template
+    val resolved = template
+        .replace("{input_file_name}", inputFileName)
+        .replace("{output_format}", outputFormat)
+        .replace("{input_format}", inputFormat)
+        .replace("{input_encode}", inputEncode)
+        .replace("{output_encode}", outputEncode)
+        .replace("{audio_encode}", audioEncode)
+        .replace("{video_encode}", videoEncode)
+        .replace("{date_time}", dateTime)
+        .replace("{date}", date)
+        .replace("{custom_date}", customDate)
+        .replace("{time}", SimpleDateFormat("HHmmss", Locale.getDefault()).format(Date()))
+
+    return resolved
+        .replace('/', '_')
+        .replace('\\', '_')
+        .replace(':', '-')
+        .trim('.')
+        .ifBlank { "output_$dateTime" }
+}
+
 private fun resolveInputUri(input: String): Uri {
     return if (input.startsWith("content://")) Uri.parse(input) else Uri.fromFile(File(input))
 }
 
-private fun resolveOutputForFFmpeg(
+private fun resolveOutputFile(
     context: Context,
     outputFolder: String,
     outputName: String,
@@ -665,8 +859,8 @@ private fun resolveOutputForFFmpeg(
 private fun copyToOutputFolder(context: Context, folderUri: String, source: File) {
     val treeUri = Uri.parse(folderUri)
     val documentFile = DocumentFile.fromTreeUri(context, treeUri) ?: return
-    val mimeType = mimeTypeForExtension(source.extension)
-    val target = documentFile.createFile(mimeType, source.nameWithoutExtension) ?: return
+    // Keep original filename/extension as-is (e.g., .ogg) instead of provider-normalized variants (e.g., .oga).
+    val target = documentFile.createFile("application/octet-stream", source.name) ?: return
     context.contentResolver.openOutputStream(target.uri)?.use { outputStream ->
         source.inputStream().use { inputStream ->
             inputStream.copyTo(outputStream)
@@ -674,36 +868,26 @@ private fun copyToOutputFolder(context: Context, folderUri: String, source: File
     }
 }
 
-private fun videoMimeTypeFor(videoCodec: String, outputFormat: String): String? {
+private fun videoMimeTypeFor(videoCodec: String, outputFormat: String, removeVideo: Boolean): String? {
+    if (removeVideo || videoCodec == "copy") return null
     return when {
-        videoCodec == "copy" -> null
-        outputFormat == "mp4" || outputFormat == "mov" -> MimeTypes.VIDEO_H264
+        outputFormat in setOf("mp4", "mov", "m4v", "3gp") -> MimeTypes.VIDEO_H264
         outputFormat == "webm" -> MimeTypes.VIDEO_VP9
+        outputFormat == "ts" -> MimeTypes.VIDEO_H264
+        outputFormat == "avi" -> MimeTypes.VIDEO_H264
         else -> null
     }
 }
 
-private fun audioMimeTypeFor(audioCodec: String, outputFormat: String): String? {
+private fun audioMimeTypeFor(audioCodec: String, outputFormat: String, removeAudio: Boolean): String? {
+    if (removeAudio || audioCodec == "copy") return null
     return when {
-        audioCodec == "copy" -> null
-        outputFormat == "mp4" || outputFormat == "mov" || outputFormat == "mkv" -> MimeTypes.AUDIO_AAC
-        outputFormat == "webm" -> MimeTypes.AUDIO_OPUS
+        outputFormat in setOf("mp4", "mov", "mkv", "m4a", "aac") -> MimeTypes.AUDIO_AAC
+        outputFormat in setOf("webm", "ogg", "opus") -> MimeTypes.AUDIO_OPUS
         outputFormat == "mp3" -> MimeTypes.AUDIO_MPEG
         outputFormat == "wav" -> MimeTypes.AUDIO_RAW
+        outputFormat == "flac" -> MimeTypes.AUDIO_FLAC
         else -> null
     }
 }
 
-
-
-private fun mimeTypeForExtension(extension: String): String {
-    return when (extension.lowercase()) {
-        "mp4" -> "video/mp4"
-        "mkv" -> "video/x-matroska"
-        "webm" -> "video/webm"
-        "mov" -> "video/quicktime"
-        "mp3" -> "audio/mpeg"
-        "wav" -> "audio/wav"
-        else -> "application/octet-stream"
-    }
-}

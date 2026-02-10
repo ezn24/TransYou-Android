@@ -1,4 +1,4 @@
-package com.github.ezn24.FFD.ui.theme
+package com.github.ezn24.TransYou.ui.theme
 
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -24,7 +24,7 @@ private val DarkColorScheme = darkColorScheme(
 )
 
 @Composable
-fun FFDTheme(
+fun TransYouTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     pureBlack: Boolean = false,
     dynamicColor: Boolean = true,

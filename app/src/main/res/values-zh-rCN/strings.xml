@@ -1,13 +1,26 @@
 <resources>
-    <string name="app_name">FFD 转码器</string>
+    <string name="app_name">TransYou 转码器</string>
     <string name="nav_transcode">转码</string>
     <string name="nav_settings">设置</string>
-    <string name="title_transcode">FFmpeg 转码</string>
+    <string name="title_transcode">TransYou 转码</string>
     <string name="title_settings">应用设置</string>
     <string name="input_file">输入文件</string>
     <string name="output_file">输出文件</string>
     <string name="output_folder">输出文件夹</string>
     <string name="pick_output_folder">选择文件夹</string>
+    <string name="output_name_pattern">输出命名方式</string>
+    <string name="output_name_preview">输出文件名预览</string>
+    <string name="custom_name_template">自定义命名模板</string>
+    <string name="custom_date_format">自定义日期格式</string>
+    <string name="custom_name_help">可用占位符：{input_file_name}、{output_format}、{input_format}、{input_encode}、{output_encode}、{audio_encode}、{video_encode}、{date}、{date_time}、{time}、{custom_date}。
+可通过日期格式输入框定义 {custom_date}（例如 yyyyMMdd、yyyy-MM-dd_HH-mm）。</string>
+    <string name="output_name_date_only">日期</string>
+    <string name="output_name_convert_detail">原文件名.convert.原格式.to.输出格式</string>
+    <string name="output_name_original">原文件名</string>
+    <string name="output_name_with_datetime">原文件名+日期时间</string>
+    <string name="output_name_with_encode">原文件名+输出编码</string>
+    <string name="output_name_datetime_only">日期时间</string>
+    <string name="output_name_custom">自定义模板</string>
     <string name="output_name">输出文件名</string>
     <string name="video_codec">视频编码器</string>
     <string name="audio_codec">音频编码器</string>
@@ -17,6 +30,8 @@
     <string name="preset">预设</string>
     <string name="pick_from_gallery">从相册选择</string>
     <string name="pick_from_files">从文件管理器选择</string>
+    <string name="audio_only_output">仅导出音频</string>
+    <string name="mute_video_output">导出无声视频</string>
     <string name="view_logs">查看日志</string>
     <string name="language">语言</string>
     <string name="theme">主题</string>
@@ -38,7 +53,7 @@
     <string name="snackbar_reset">已重置命令</string>
     <string name="transcoding_progress">转码进度</string>
     <string name="transcoding_running">正在转码…</string>
-    <string name="log_title">FFmpeg 日志</string>
+    <string name="log_title">TransYou 日志</string>
     <string name="log_empty">暂无日志</string>
     <string name="close">关闭</string>
 </resources>

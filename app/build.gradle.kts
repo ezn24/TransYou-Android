@@ -4,11 +4,11 @@ plugins {
 }
 
 android {
-    namespace = "com.github.ezn24.FFD"
+    namespace = "com.github.ezn24.TransYou"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.github.ezn24.FFD"
+        applicationId = "com.github.ezn24.TransYou"
         minSdk = 26
         targetSdk = 34
         versionCode = 1
@@ -55,7 +55,6 @@ android {
 
 dependencies {
     val composeBom = platform("androidx.compose:compose-bom:2024.08.00")
-    val nextlibVersion = "latest.release"
     implementation(composeBom)
     androidTestImplementation(composeBom)
 
@@ -74,8 +73,6 @@ dependencies {
     implementation("com.google.android.material:material:1.12.0")
     implementation("androidx.media3:media3-common:1.4.1")
     implementation("androidx.media3:media3-transformer:1.4.1")
-    implementation("io.github.anilbeesetti:nextlib-media3ext:$nextlibVersion")
-    implementation("io.github.anilbeesetti:nextlib-mediainfo:$nextlibVersion")
 
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
