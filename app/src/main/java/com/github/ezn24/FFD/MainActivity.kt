@@ -77,6 +77,8 @@ import androidx.navigation.compose.rememberNavController
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MimeTypes
 import androidx.media3.transformer.ExportException
+import androidx.media3.transformer.Composition
+import androidx.media3.transformer.EditedMediaItem
 import androidx.media3.transformer.ExportResult
 import androidx.media3.transformer.TransformationRequest
 import androidx.media3.transformer.Transformer
@@ -198,6 +200,8 @@ private fun TranscodeScreen(
     var resolution by rememberSaveable { mutableStateOf("1920x1080") }
     var bitrate by rememberSaveable { mutableStateOf("4000") }
     var preset by rememberSaveable { mutableStateOf("medium") }
+    var audioOnly by rememberSaveable { mutableStateOf(false) }
+    var muteVideo by rememberSaveable { mutableStateOf(false) }
     val inputFilePicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument(),
         onResult = { uri ->
@@ -325,7 +329,7 @@ private fun TranscodeScreen(
                 ),
                 selected = resolution,
                 onSelected = { resolution = it },
-                enabled = videoCodec != "copy",
+                enabled = !audioOnly && videoCodec != "copy",
             )
             Spacer(modifier = Modifier.height(12.dp))
             OutlinedTextField(
@@ -334,7 +338,7 @@ private fun TranscodeScreen(
                 label = { Text(stringResource(id = R.string.bitrate)) },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 modifier = Modifier.fillMaxWidth(),
-                enabled = videoCodec != "copy",
+                enabled = !audioOnly && videoCodec != "copy",
             )
             Spacer(modifier = Modifier.height(12.dp))
             DropdownField(
@@ -342,7 +346,7 @@ private fun TranscodeScreen(
                 options = listOf("ultrafast", "fast", "medium", "slow", "veryslow"),
                 selected = preset,
                 onSelected = { preset = it },
-                enabled = videoCodec != "copy",
+                enabled = !audioOnly && videoCodec != "copy",
             )
         }
 
@@ -361,21 +365,63 @@ private fun TranscodeScreen(
                 ),
                 selected = audioCodec,
                 onSelected = { audioCodec = it },
+                enabled = !muteVideo,
             )
         }
 
         SectionCard(title = stringResource(id = R.string.section_format)) {
             DropdownField(
                 label = stringResource(id = R.string.output_format),
-                options = listOf("mp4", "mkv", "webm", "mov", "mp3", "wav"),
+                options = listOf(
+                    "mp4", "mkv", "webm", "mov", "m4v", "3gp", "avi", "ts",
+                    "mp3", "wav", "m4a", "aac", "flac", "ogg", "opus",
+                ),
                 selected = outputFormat,
                 onSelected = { outputFormat = it },
             )
+            Spacer(modifier = Modifier.height(12.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(text = stringResource(id = R.string.audio_only_output))
+                Switch(
+                    checked = audioOnly,
+                    onCheckedChange = { enabled ->
+                        audioOnly = enabled
+                        if (enabled) muteVideo = false
+                    },
+                )
+            }
+            Spacer(modifier = Modifier.height(12.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(text = stringResource(id = R.string.mute_video_output))
+                Switch(
+                    checked = muteVideo,
+                    onCheckedChange = { enabled ->
+                        muteVideo = enabled
+                        if (enabled) audioOnly = false
+                    },
+                )
+            }
         }
 
         SectionCard(title = stringResource(id = R.string.section_command)) {
             TextButton(onClick = { showLogs = true }) {
                 Text(text = stringResource(id = R.string.view_logs))
+            }
+            Spacer(modifier = Modifier.height(12.dp))
+            if (logEntries.isEmpty()) {
+                Text(text = stringResource(id = R.string.log_empty))
+            } else {
+                logEntries.takeLast(8).forEach { entry ->
+                    Text(text = entry)
+                }
             }
         }
 
@@ -396,17 +442,27 @@ private fun TranscodeScreen(
                 val message = context.getString(R.string.transcoding_running)
                 val inputUri = resolveInputUri(inputFile)
                 val outputPath = resolveOutputForFFmpeg(context, outputFolder, outputName, outputFormat)
+                val shouldRemoveVideo = audioOnly
+                val shouldRemoveAudio = muteVideo
                 isTranscoding = true
                 logEntries.clear()
                 logEntries.add("[init] ${context.getString(R.string.transcoding_progress)}")
+                logEntries.add("[mode] audioOnly=$audioOnly, muteVideo=$muteVideo, format=$outputFormat")
+
+                val transformationRequest = TransformationRequest.Builder()
+                    .setVideoMimeType(videoMimeTypeFor(videoCodec, outputFormat, shouldRemoveVideo))
+                    .setAudioMimeType(audioMimeTypeFor(audioCodec, outputFormat, shouldRemoveAudio))
+                    .build()
+
+                val editedMediaItem = EditedMediaItem.Builder(MediaItem.fromUri(inputUri))
+                    .setRemoveVideo(shouldRemoveVideo)
+                    .setRemoveAudio(shouldRemoveAudio)
+                    .build()
+
+                val composition = Composition.Builder(editedMediaItem).build()
 
                 val transformer = Transformer.Builder(context)
-                    .setTransformationRequest(
-                        TransformationRequest.Builder()
-                            .setVideoMimeType(videoMimeTypeFor(videoCodec, outputFormat))
-                            .setAudioMimeType(audioMimeTypeFor(audioCodec, outputFormat))
-                            .build(),
-                    )
+                    .setTransformationRequest(transformationRequest)
                     .addListener(
                         object : Transformer.Listener {
                             override fun onCompleted(
@@ -415,6 +471,7 @@ private fun TranscodeScreen(
                             ) {
                                 coroutineScope.launch {
                                     logEntries.add("[done] Transcode finished")
+                                    logEntries.add("[file] ${outputPath.absolutePath}")
                                     if (outputFolder.startsWith("content://")) {
                                         copyToOutputFolder(context, outputFolder, outputPath)
                                     }
@@ -436,7 +493,8 @@ private fun TranscodeScreen(
                     )
                     .build()
 
-                transformer.start(MediaItem.fromUri(inputUri), outputPath.absolutePath)
+                transformer.start(composition, outputPath.absolutePath)
+                logEntries.add("[run] ${outputPath.absolutePath}")
                 coroutineScope.launch {
                     snackbarHostState.showSnackbar(message)
                 }
@@ -674,36 +732,43 @@ private fun copyToOutputFolder(context: Context, folderUri: String, source: File
     }
 }
 
-private fun videoMimeTypeFor(videoCodec: String, outputFormat: String): String? {
+private fun videoMimeTypeFor(videoCodec: String, outputFormat: String, removeVideo: Boolean): String? {
+    if (removeVideo || videoCodec == "copy") return null
     return when {
-        videoCodec == "copy" -> null
-        outputFormat == "mp4" || outputFormat == "mov" -> MimeTypes.VIDEO_H264
+        outputFormat in setOf("mp4", "mov", "m4v", "3gp") -> MimeTypes.VIDEO_H264
         outputFormat == "webm" -> MimeTypes.VIDEO_VP9
+        outputFormat == "ts" -> MimeTypes.VIDEO_H264
+        outputFormat == "avi" -> MimeTypes.VIDEO_H264
         else -> null
     }
 }
 
-private fun audioMimeTypeFor(audioCodec: String, outputFormat: String): String? {
+private fun audioMimeTypeFor(audioCodec: String, outputFormat: String, removeAudio: Boolean): String? {
+    if (removeAudio || audioCodec == "copy") return null
     return when {
-        audioCodec == "copy" -> null
-        outputFormat == "mp4" || outputFormat == "mov" || outputFormat == "mkv" -> MimeTypes.AUDIO_AAC
-        outputFormat == "webm" -> MimeTypes.AUDIO_OPUS
+        outputFormat in setOf("mp4", "mov", "mkv", "m4a", "aac") -> MimeTypes.AUDIO_AAC
+        outputFormat in setOf("webm", "ogg", "opus") -> MimeTypes.AUDIO_OPUS
         outputFormat == "mp3" -> MimeTypes.AUDIO_MPEG
         outputFormat == "wav" -> MimeTypes.AUDIO_RAW
+        outputFormat == "flac" -> MimeTypes.AUDIO_FLAC
         else -> null
     }
 }
-
-
 
 private fun mimeTypeForExtension(extension: String): String {
     return when (extension.lowercase()) {
-        "mp4" -> "video/mp4"
+        "mp4", "m4v" -> "video/mp4"
         "mkv" -> "video/x-matroska"
         "webm" -> "video/webm"
         "mov" -> "video/quicktime"
+        "3gp" -> "video/3gpp"
+        "avi" -> "video/x-msvideo"
+        "ts" -> "video/mp2t"
         "mp3" -> "audio/mpeg"
         "wav" -> "audio/wav"
+        "m4a", "aac" -> "audio/mp4"
+        "flac" -> "audio/flac"
+        "ogg", "opus" -> "audio/ogg"
         else -> "application/octet-stream"
     }
 }

@@ -17,6 +17,8 @@
     <string name="preset">預設</string>
     <string name="pick_from_gallery">從相簿選擇</string>
     <string name="pick_from_files">從檔案管理器選擇</string>
+    <string name="audio_only_output">僅輸出音訊</string>
+    <string name="mute_video_output">輸出無聲影片</string>
     <string name="view_logs">查看日誌</string>
     <string name="language">語言</string>
     <string name="theme">主題</string>

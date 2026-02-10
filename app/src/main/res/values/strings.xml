@@ -17,6 +17,8 @@
     <string name="preset">Preset</string>
     <string name="pick_from_gallery">Pick from gallery</string>
     <string name="pick_from_files">Pick from files</string>
+    <string name="audio_only_output">Export audio only</string>
+    <string name="mute_video_output">Export video without audio</string>
     <string name="view_logs">View logs</string>
     <string name="language">Language</string>
     <string name="theme">Theme</string>
