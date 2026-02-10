@@ -4,7 +4,7 @@
 
 <br>
 
-**TransYou** is an Android media transcoder app built with Kotlin + Jetpack Compose + Media3 Transformer.
+**TransYou** is an Offline Android media transcoder app built with Kotlin + Jetpack Compose + Media3 Transformer.
 
 ## Warning
 All code in this repository is written by Codex. So know your own risk!
