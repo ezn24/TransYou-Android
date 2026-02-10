@@ -2,7 +2,7 @@
     <string name="app_name">TransYou 转码器</string>
     <string name="nav_transcode">转码</string>
     <string name="nav_settings">设置</string>
-    <string name="title_transcode">FFmpeg 转码</string>
+    <string name="title_transcode">TransYou 转码</string>
     <string name="title_settings">应用设置</string>
     <string name="input_file">输入文件</string>
     <string name="output_file">输出文件</string>
@@ -53,7 +53,7 @@
     <string name="snackbar_reset">已重置命令</string>
     <string name="transcoding_progress">转码进度</string>
     <string name="transcoding_running">正在转码…</string>
-    <string name="log_title">FFmpeg 日志</string>
+    <string name="log_title">TransYou 日志</string>
     <string name="log_empty">暂无日志</string>
     <string name="close">关闭</string>
 </resources>

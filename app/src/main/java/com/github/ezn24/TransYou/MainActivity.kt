@@ -509,7 +509,7 @@ private fun TranscodeScreen(
                 if (isTranscoding) return@FloatingActionButton
                 val message = context.getString(R.string.transcoding_running)
                 val inputUri = resolveInputUri(inputFile)
-                val outputPath = resolveOutputForFFmpeg(context, outputFolder, generatedOutputName, outputFormat)
+                val outputPath = resolveOutputFile(context, outputFolder, generatedOutputName, outputFormat)
                 val shouldRemoveVideo = audioOnly
                 val shouldRemoveAudio = muteVideo
                 isTranscoding = true
@@ -842,7 +842,7 @@ private fun resolveInputUri(input: String): Uri {
     return if (input.startsWith("content://")) Uri.parse(input) else Uri.fromFile(File(input))
 }
 
-private fun resolveOutputForFFmpeg(
+private fun resolveOutputFile(
     context: Context,
     outputFolder: String,
     outputName: String,
