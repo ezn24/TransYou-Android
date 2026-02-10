@@ -1,1 +1,6 @@
 /.gradle
+/.idea
+gradlew*
+/gradle
+build
+local.properties
