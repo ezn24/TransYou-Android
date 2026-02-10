@@ -8,6 +8,19 @@
     <string name="output_file">输出文件</string>
     <string name="output_folder">输出文件夹</string>
     <string name="pick_output_folder">选择文件夹</string>
+    <string name="output_name_pattern">输出命名方式</string>
+    <string name="output_name_preview">输出文件名预览</string>
+    <string name="custom_name_template">自定义命名模板</string>
+    <string name="custom_date_format">自定义日期格式</string>
+    <string name="custom_name_help">可用占位符：{input_file_name}、{output_format}、{input_format}、{input_encode}、{output_encode}、{audio_encode}、{video_encode}、{date}、{date_time}、{time}、{custom_date}。
+可通过日期格式输入框定义 {custom_date}（例如 yyyyMMdd、yyyy-MM-dd_HH-mm）。</string>
+    <string name="output_name_date_only">日期</string>
+    <string name="output_name_convert_detail">原文件名.convert.原格式.to.输出格式</string>
+    <string name="output_name_original">原文件名</string>
+    <string name="output_name_with_datetime">原文件名+日期时间</string>
+    <string name="output_name_with_encode">原文件名+输出编码</string>
+    <string name="output_name_datetime_only">日期时间</string>
+    <string name="output_name_custom">自定义模板</string>
     <string name="output_name">输出文件名</string>
     <string name="video_codec">视频编码器</string>
     <string name="audio_codec">音频编码器</string>

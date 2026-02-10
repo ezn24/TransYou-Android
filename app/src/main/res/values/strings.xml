@@ -8,6 +8,19 @@
     <string name="output_file">Output file</string>
     <string name="output_folder">Output folder</string>
     <string name="pick_output_folder">Choose folder</string>
+    <string name="output_name_pattern">Output naming pattern</string>
+    <string name="output_name_preview">Output file name preview</string>
+    <string name="custom_name_template">Custom naming template</string>
+    <string name="custom_date_format">Custom date format</string>
+    <string name="custom_name_help">You can use placeholders: {input_file_name}, {output_format}, {input_format}, {input_encode}, {output_encode}, {audio_encode}, {video_encode}, {date}, {date_time}, {time}, {custom_date}.
+Use the date format field to define {custom_date} (e.g. yyyyMMdd, yyyy-MM-dd_HH-mm).</string>
+    <string name="output_name_date_only">Date</string>
+    <string name="output_name_convert_detail">Original.convert.inputFormat.to.outputFormat</string>
+    <string name="output_name_original">Original file name</string>
+    <string name="output_name_with_datetime">Original + date time</string>
+    <string name="output_name_with_encode">Original + output encode</string>
+    <string name="output_name_datetime_only">Date time</string>
+    <string name="output_name_custom">Custom template</string>
     <string name="output_name">Output file name</string>
     <string name="video_codec">Video codec</string>
     <string name="audio_codec">Audio codec</string>

@@ -86,6 +86,9 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import java.io.File
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 private val Context.dataStore by preferencesDataStore(name = "settings")
 
@@ -192,7 +195,9 @@ private fun TranscodeScreen(
 
     var inputFile by rememberSaveable { mutableStateOf("/storage/emulated/0/Movies/input.mov") }
     var outputFolder by rememberSaveable { mutableStateOf("/storage/emulated/0/Movies") }
-    var outputName by rememberSaveable { mutableStateOf("output") }
+    var outputNamePattern by rememberSaveable { mutableStateOf(OutputNamePattern.DATE_ONLY) }
+    var customNameTemplate by rememberSaveable { mutableStateOf("{input_file_name}.convert.{input_format}.to.{output_format}") }
+    var customDateFormat by rememberSaveable { mutableStateOf("yyyyMMdd") }
     var videoCodec by rememberSaveable { mutableStateOf("libx264") }
     var audioCodec by rememberSaveable { mutableStateOf("aac") }
     var outputFormat by rememberSaveable { mutableStateOf("mp4") }
@@ -226,6 +231,39 @@ private fun TranscodeScreen(
         },
     )
 
+    val inputFileName = remember(inputFile) { extractInputFileName(inputFile) }
+    val inputFormat = remember(inputFile) { extractInputFormat(inputFile) }
+    val outputEncode = remember(videoCodec, audioCodec, audioOnly, muteVideo) {
+        when {
+            audioOnly -> audioCodec
+            muteVideo -> videoCodec
+            else -> "${videoCodec}_${audioCodec}"
+        }
+    }
+    val generatedOutputName = remember(
+        outputNamePattern,
+        customNameTemplate,
+        customDateFormat,
+        inputFileName,
+        inputFormat,
+        outputFormat,
+        audioCodec,
+        videoCodec,
+        outputEncode,
+    ) {
+        generateOutputName(
+            pattern = outputNamePattern,
+            customTemplate = customNameTemplate,
+            datePattern = customDateFormat,
+            inputFileName = inputFileName,
+            inputFormat = inputFormat,
+            inputEncode = "unknown",
+            outputFormat = outputFormat,
+            outputEncode = outputEncode,
+            audioEncode = audioCodec,
+            videoEncode = videoCodec,
+        )
+    }
 
     val scrollState = rememberScrollState()
 
@@ -286,11 +324,41 @@ private fun TranscodeScreen(
                 Text(text = stringResource(id = R.string.pick_output_folder))
             }
             Spacer(modifier = Modifier.height(12.dp))
+            DropdownField(
+                label = stringResource(id = R.string.output_name_pattern),
+                options = OutputNamePattern.entries,
+                selected = outputNamePattern,
+                onSelected = { outputNamePattern = it },
+                optionLabel = { mode -> stringResource(id = mode.labelRes) },
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+            if (outputNamePattern == OutputNamePattern.CUSTOM_TEMPLATE) {
+                OutlinedTextField(
+                    value = customNameTemplate,
+                    onValueChange = { customNameTemplate = it },
+                    label = { Text(stringResource(id = R.string.custom_name_template)) },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+                OutlinedTextField(
+                    value = customDateFormat,
+                    onValueChange = { customDateFormat = it },
+                    label = { Text(stringResource(id = R.string.custom_date_format)) },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = stringResource(id = R.string.custom_name_help),
+                    style = MaterialTheme.typography.bodySmall,
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+            }
             OutlinedTextField(
-                value = outputName,
-                onValueChange = { outputName = it },
-                label = { Text(stringResource(id = R.string.output_name)) },
+                value = "$generatedOutputName.$outputFormat",
+                onValueChange = {},
+                label = { Text(stringResource(id = R.string.output_name_preview)) },
                 modifier = Modifier.fillMaxWidth(),
+                readOnly = true,
             )
         }
 
@@ -310,6 +378,7 @@ private fun TranscodeScreen(
                 ),
                 selected = videoCodec,
                 onSelected = { videoCodec = it },
+                enabled = !audioOnly,
             )
             Spacer(modifier = Modifier.height(12.dp))
             DropdownField(
@@ -440,7 +509,7 @@ private fun TranscodeScreen(
                 if (isTranscoding) return@FloatingActionButton
                 val message = context.getString(R.string.transcoding_running)
                 val inputUri = resolveInputUri(inputFile)
-                val outputPath = resolveOutputForFFmpeg(context, outputFolder, outputName, outputFormat)
+                val outputPath = resolveOutputForFFmpeg(context, outputFolder, generatedOutputName, outputFormat)
                 val shouldRemoveVideo = audioOnly
                 val shouldRemoveAudio = muteVideo
                 isTranscoding = true
@@ -643,6 +712,16 @@ private fun <T> DropdownField(
 }
 
 
+private enum class OutputNamePattern(val labelRes: Int, val template: String) {
+    DATE_ONLY(R.string.output_name_date_only, "{date}"),
+    CONVERT_DETAIL(R.string.output_name_convert_detail, "{input_file_name}.convert.{input_format}.to.{output_format}"),
+    ORIGINAL_NAME(R.string.output_name_original, "{input_file_name}"),
+    NAME_WITH_DATE_TIME(R.string.output_name_with_datetime, "{input_file_name}_{date_time}"),
+    NAME_WITH_OUTPUT_ENCODE(R.string.output_name_with_encode, "{input_file_name}_{output_encode}"),
+    DATE_TIME_ONLY(R.string.output_name_datetime_only, "{date_time}"),
+    CUSTOM_TEMPLATE(R.string.output_name_custom, "{input_file_name}"),
+}
+
 private enum class ThemeMode(val labelRes: Int) {
     SYSTEM(R.string.theme_system),
     LIGHT(R.string.theme_light),
@@ -698,6 +777,65 @@ private class SettingsRepository(private val context: Context) {
             prefs[key] = value
         }
     }
+}
+
+private fun extractInputFileName(input: String): String {
+    val candidate = if (input.startsWith("content://")) {
+        Uri.parse(input).lastPathSegment ?: "input"
+    } else {
+        File(input).name
+    }
+    return candidate.substringBeforeLast('.', candidate).ifBlank { "input" }
+}
+
+private fun extractInputFormat(input: String): String {
+    val candidate = if (input.startsWith("content://")) {
+        Uri.parse(input).lastPathSegment ?: ""
+    } else {
+        File(input).name
+    }
+    return candidate.substringAfterLast('.', "unknown").ifBlank { "unknown" }
+}
+
+private fun generateOutputName(
+    pattern: OutputNamePattern,
+    customTemplate: String,
+    datePattern: String,
+    inputFileName: String,
+    inputFormat: String,
+    inputEncode: String,
+    outputFormat: String,
+    outputEncode: String,
+    audioEncode: String,
+    videoEncode: String,
+): String {
+    val safeDatePattern = datePattern.ifBlank { "yyyyMMdd" }
+    val dateFormatter = runCatching { SimpleDateFormat(safeDatePattern, Locale.getDefault()) }
+        .getOrElse { SimpleDateFormat("yyyyMMdd", Locale.getDefault()) }
+    val date = SimpleDateFormat("yyyyMMdd", Locale.getDefault()).format(Date())
+    val dateTime = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
+    val customDate = dateFormatter.format(Date())
+
+    val template = if (pattern == OutputNamePattern.CUSTOM_TEMPLATE) customTemplate else pattern.template
+    val resolved = template
+        .replace("{input_file_name}", inputFileName)
+        .replace("{output_format}", outputFormat)
+        .replace("{input_format}", inputFormat)
+        .replace("{input_encode}", inputEncode)
+        .replace("{output_encode}", outputEncode)
+        .replace("{audio_encode}", audioEncode)
+        .replace("{video_encode}", videoEncode)
+        .replace("{date_time}", dateTime)
+        .replace("{date}", date)
+        .replace("{custom_date}", customDate)
+        .replace("{time}", SimpleDateFormat("HHmmss", Locale.getDefault()).format(Date()))
+
+    return resolved
+        .replace('/', '_')
+        .replace('\\', '_')
+        .replace(':', '-')
+        .trim('.')
+        .ifBlank { "output_$dateTime" }
 }
 
 private fun resolveInputUri(input: String): Uri {
