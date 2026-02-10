@@ -1,7 +1,9 @@
+![](./images/logo.svg)
 # TransYou
-**简体中文: [README.zh-CN.md](README.zh-CN.md)**
-**繁體中文: [README.zh-TW.md](README.zh-TW.md)**
 
+[**English**](README.md)
+| [**简体中文**](README.zh-CN.md)
+| [**繁體中文**](README.zh-TW.md) 
 <br>
 
 **TransYou** is an Offline Android media transcoder app built with Kotlin + Jetpack Compose + Media3 Transformer.

@@ -9,6 +9,7 @@ on:
       - "README.zh-CN.md"
       - "README.zh-TW.md"
       - ".github/workflows/**"
+      - "images/**"
   workflow_dispatch:
 
 permissions:

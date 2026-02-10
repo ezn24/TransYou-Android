@@ -1,6 +1,8 @@
+![](./images/logo.svg)
 # TransYou
-English: [README.md](README.md) 繁體中文: [README.zh-TW.md](README.zh-TW.md)
-
+[**English**](README.md)
+| [**简体中文**](README.zh-CN.md)
+| [**繁體中文**](README.zh-TW.md) 
 <br>
 
 **TransYou** 是一款 Android 本地媒体转码应用，基于 Kotlin + Jetpack Compose + Media3 Transformer 构建。
