@@ -4,11 +4,11 @@ plugins {
 }
 
 android {
-    namespace = "com.github.ezn24.FFD"
+    namespace = "com.github.ezn24.TransYou"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.github.ezn24.FFD"
+        applicationId = "com.github.ezn24.TransYou"
         minSdk = 26
         targetSdk = 34
         versionCode = 1

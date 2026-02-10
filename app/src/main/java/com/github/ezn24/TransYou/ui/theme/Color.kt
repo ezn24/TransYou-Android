@@ -1,4 +1,4 @@
-package com.github.ezn24.FFD.ui.theme
+package com.github.ezn24.TransYou.ui.theme
 
 import androidx.compose.ui.graphics.Color
 

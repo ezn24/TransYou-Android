@@ -1,4 +1,4 @@
-package com.github.ezn24.FFD
+package com.github.ezn24.TransYou
 
 import android.content.Context
 import android.net.Uri
@@ -81,7 +81,7 @@ import androidx.media3.transformer.EditedMediaItem
 import androidx.media3.transformer.ExportResult
 import androidx.media3.transformer.TransformationRequest
 import androidx.media3.transformer.Transformer
-import com.github.ezn24.FFD.ui.theme.FFDTheme
+import com.github.ezn24.TransYou.ui.theme.TransYouTheme
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -111,7 +111,7 @@ class MainActivity : ComponentActivity() {
                 AppCompatDelegate.setApplicationLocales(language.toLocaleList())
             }
 
-            FFDTheme(darkTheme = darkTheme, pureBlack = pureBlack) {
+            TransYouTheme(darkTheme = darkTheme, pureBlack = pureBlack) {
                 Surface(modifier = Modifier.fillMaxSize()) {
                     AppScaffold(settingsRepository = settingsRepository)
                 }

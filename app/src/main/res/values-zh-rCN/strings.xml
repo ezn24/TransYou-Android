@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">FFD 转码器</string>
+    <string name="app_name">TransYou 转码器</string>
     <string name="nav_transcode">转码</string>
     <string name="nav_settings">设置</string>
     <string name="title_transcode">FFmpeg 转码</string>

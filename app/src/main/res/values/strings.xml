@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">FFD Transcoder</string>
+    <string name="app_name">TransYou Transcoder</string>
     <string name="nav_transcode">Transcode</string>
     <string name="nav_settings">Settings</string>
     <string name="title_transcode">FFmpeg Transcode</string>
