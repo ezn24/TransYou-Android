@@ -1,21 +1,86 @@
-- name: Rename APK
+name: Build and Release APK
+
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - "README.md"
+      - "README.zh-CN.md"
+      - "README.zh-TW.md"
+      - ".github/workflows/**"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.10"
+
+      - name: Build release APK
+        run: gradle :app:assembleRelease
+
+      - name: Install Android build-tools 29.0.3
+        run: |
+          yes | "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" --install "build-tools;29.0.3"
+
+      - name: Sign APK
+        id: sign_apk
+        uses: r0adkll/sign-android-release@v1
+        with:
+          releaseDirectory: app/build/outputs/apk/release
+          signingKeyBase64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          alias: ${{ secrets.ANDROID_KEY_ALIAS }}
+          keyStorePassword: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          keyPassword: ${{ secrets.ANDROID_KEY_PASSWORD }}
+
+      - name: Generate release metadata
+        id: meta
+        run: |
+          TAG_NAME="v$(date +'%Y.%m.%d')-${GITHUB_RUN_NUMBER}.${GITHUB_RUN_ATTEMPT}"
+          {
+            echo "tag_name=${TAG_NAME}"
+            echo "release_name=Release ${TAG_NAME}"
+            echo "release_notes<<EOF"
+            echo "Automated release of ${TAG_NAME}"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Rename APK
         id: rename_apk
         run: |
-          # 设定你想要的固定文件名
+          # 设定最终文件名
           NEW_NAME="app-release.apk"
-          
-          # 获取签名后的原始路径（r0adkll/sign-android-release 的输出）
+          # 获取签名后的原始路径
           OLD_PATH="${{ steps.sign_apk.outputs.signedReleaseFile }}"
-          
-          # 提取目录路径
+          # 获取目录并执行重命名
           DIR=$(dirname "$OLD_PATH")
-          
-          # 执行重命名
           mv "$OLD_PATH" "$DIR/$NEW_NAME"
-          
-          # 打印一下结果到日志，方便排错
-          echo "File renamed from $OLD_PATH to $DIR/$NEW_NAME"
-          
-          # 将最终绝对路径写入 GitHub Output
-          # 建议使用引号包裹路径以防万一
-          echo "new_path=${DIR}/${NEW_NAME}" >> "$GITHUB_OUTPUT"
+          # 将新路径输出给后续步骤
+          echo "new_path=$DIR/$NEW_NAME" >> "$GITHUB_OUTPUT"
+          echo "Success: Renamed to $NEW_NAME"
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.meta.outputs.tag_name }}
+          name: ${{ steps.meta.outputs.release_name }}
+          body: ${{ steps.meta.outputs.release_notes }}
+          # 关键点：这里引用了改名步骤的输出
+          files: ${{ steps.rename_apk.outputs.new_path }}
