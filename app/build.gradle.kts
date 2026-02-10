@@ -5,7 +5,7 @@ plugins {
 
 android {
     namespace = "com.github.ezn24.FFD"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.github.ezn24.FFD"
