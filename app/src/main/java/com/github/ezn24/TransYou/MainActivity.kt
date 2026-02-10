@@ -124,6 +124,8 @@ class MainActivity : ComponentActivity() {
 @OptIn(ExperimentalMaterial3Api::class)
 private fun AppScaffold(settingsRepository: SettingsRepository) {
     val navController = rememberNavController()
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = navBackStackEntry?.destination?.route
     val snackbarHostState = remember { SnackbarHostState() }
 
     Scaffold(
@@ -131,7 +133,7 @@ private fun AppScaffold(settingsRepository: SettingsRepository) {
             TopAppBar(
                 title = {
                     Text(
-                        text = if (navController.currentDestinationRoute() == Routes.Settings.route) {
+                        text = if (currentRoute == Routes.Settings.route) {
                             stringResource(id = R.string.title_settings)
                         } else {
                             stringResource(id = R.string.title_transcode)
@@ -143,13 +145,13 @@ private fun AppScaffold(settingsRepository: SettingsRepository) {
         bottomBar = {
             NavigationBar {
                 NavigationBarItem(
-                    selected = navController.currentDestinationRoute() == Routes.Transcode.route,
+                    selected = currentRoute == Routes.Transcode.route,
                     onClick = { navController.navigate(Routes.Transcode.route) },
                     icon = { Icon(Icons.Default.SwapHoriz, contentDescription = null) },
                     label = { Text(stringResource(id = R.string.nav_transcode)) },
                 )
                 NavigationBarItem(
-                    selected = navController.currentDestinationRoute() == Routes.Settings.route,
+                    selected = currentRoute == Routes.Settings.route,
                     onClick = { navController.navigate(Routes.Settings.route) },
                     icon = { Icon(Icons.Default.Settings, contentDescription = null) },
                     label = { Text(stringResource(id = R.string.nav_settings)) },
@@ -179,9 +181,6 @@ private enum class Routes(val route: String) {
     Transcode("transcode"),
     Settings("settings"),
 }
-
-private fun NavHostController.currentDestinationRoute(): String? =
-    currentBackStackEntry?.destination?.route
 
 @Composable
 private fun TranscodeScreen(
@@ -890,4 +889,3 @@ private fun audioMimeTypeFor(audioCodec: String, outputFormat: String, removeAud
         else -> null
     }
 }
-

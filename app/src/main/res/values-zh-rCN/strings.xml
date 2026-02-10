@@ -1,8 +1,8 @@
 <resources>
-    <string name="app_name">TransYou 转码器</string>
+    <string name="app_name">TransYou</string>
     <string name="nav_transcode">转码</string>
     <string name="nav_settings">设置</string>
-    <string name="title_transcode">TransYou 转码</string>
+    <string name="title_transcode">TransYou</string>
     <string name="title_settings">应用设置</string>
     <string name="input_file">输入文件</string>
     <string name="output_file">输出文件</string>
