@@ -44,7 +44,6 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -60,7 +59,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
 import androidx.core.os.LocaleListCompat
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
@@ -202,7 +200,6 @@ private fun TranscodeScreen(
     val coroutineScope = rememberCoroutineScope()
     val logEntries = remember { mutableStateListOf<String>() }
     var isTranscoding by rememberSaveable { mutableStateOf(false) }
-    var showLogs by rememberSaveable { mutableStateOf(false) }
 
     var inputFile by rememberSaveable { mutableStateOf("/storage/emulated/0/Movies/input.mov") }
     var outputFolder by rememberSaveable { mutableStateOf("/storage/emulated/0/Movies") }
@@ -490,17 +487,20 @@ private fun TranscodeScreen(
             }
         }
 
-        SectionCard(title = stringResource(id = R.string.section_command)) {
-            TextButton(onClick = { showLogs = true }) {
-                Text(text = stringResource(id = R.string.view_logs))
-            }
-            Spacer(modifier = Modifier.height(12.dp))
-            if (logEntries.isEmpty()) {
-                Text(text = stringResource(id = R.string.log_empty))
-            } else {
-                logEntries.takeLast(8).forEach { entry ->
-                    Text(text = entry)
-                }
+        Card(modifier = Modifier.fillMaxWidth()) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                OutlinedTextField(
+                    value = if (logEntries.isEmpty()) {
+                        stringResource(id = R.string.log_empty)
+                    } else {
+                        logEntries.takeLast(8).joinToString(separator = "\n")
+                    },
+                    onValueChange = {},
+                    label = { Text(text = stringResource(id = R.string.log_title)) },
+                    modifier = Modifier.fillMaxWidth(),
+                    readOnly = true,
+                    minLines = 6,
+                )
             }
         }
 
@@ -586,30 +586,7 @@ private fun TranscodeScreen(
         }
     }
 
-    if (showLogs) {
-        Dialog(onDismissRequest = { showLogs = false }) {
-            Card(modifier = Modifier.fillMaxWidth()) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text(
-                        text = stringResource(id = R.string.log_title),
-                        style = MaterialTheme.typography.titleMedium,
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
-                    if (logEntries.isEmpty()) {
-                        Text(text = stringResource(id = R.string.log_empty))
-                    } else {
-                        logEntries.forEach { entry ->
-                            Text(text = entry)
-                        }
-                    }
-                    Spacer(modifier = Modifier.height(12.dp))
-                    FilledTonalButton(onClick = { showLogs = false }) {
-                        Text(text = stringResource(id = R.string.close))
-                    }
-                }
-            }
-        }
-    }
+
 }
 
 @Composable

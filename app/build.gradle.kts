@@ -1,9 +1,16 @@
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
 }
 
 android {
+    val buildTime = LocalDateTime.now()
+    val timeBasedVersionCode = buildTime.format(DateTimeFormatter.ofPattern("yyMMddHH")).toInt()
+    val timeBasedVersionName = buildTime.format(DateTimeFormatter.ofPattern("yyyy.MM.dd.HHmm"))
+
     namespace = "com.github.ezn24.TransYou"
     compileSdk = 35
 
@@ -11,8 +18,8 @@ android {
         applicationId = "com.github.ezn24.TransYou"
         minSdk = 26
         targetSdk = 34
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = timeBasedVersionCode
+        versionName = timeBasedVersionName
 
         vectorDrawables {
             useSupportLibrary = true
